@@ -24,6 +24,12 @@ export const MOCK_STORES: Store[] = [
   }
 ];
 
+export const STORE_PRICING_FACTORS: Record<string, number> = {
+  'store_1': 1.0,   // Base price
+  'store_2': 0.94,  // ~6% cheaper
+  'store_3': 1.08   // ~8% more expensive
+};
+
 export const INITIAL_SUGGESTIONS = [
   "Arroz 5kg",
   "Feijão Carioca",

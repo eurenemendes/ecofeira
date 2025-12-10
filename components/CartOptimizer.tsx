@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { CartItem, CartOptimization } from '../types';
-import { MOCK_STORES } from '../constants';
-import { ShoppingBag, TrendingDown, MapPin, AlertCircle } from 'lucide-react';
+import { MOCK_STORES, STORE_PRICING_FACTORS } from '../constants';
+import { TrendingDown, MapPin } from 'lucide-react';
 
 interface CartOptimizerProps {
   cart: CartItem[];
@@ -12,43 +12,25 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart }) => {
   const optimizedData: CartOptimization[] = useMemo(() => {
     if (cart.length === 0) return [];
 
-    // Group items by baseProductId to understand unique items needed
-    const uniqueItemsNeeded = new Set(cart.map(i => i.baseProductId));
-
     return MOCK_STORES.map(store => {
       let total = 0;
       let missingCount = 0;
       const storeItems: CartItem[] = [];
 
-      // For each unique item in the cart, find the price at this specific store
-      // NOTE: In a real app, we would re-fetch prices for this store. 
-      // Here, we assume the cart items *are* the offers selected, 
-      // but for "Optimization" we need to simulate the price at *other* stores for the same product.
-      // Since we generated offers for ALL stores in geminiService, we can simulate this logic 
-      // by inferring the price variation logic or finding the sibling offer if we stored it.
-      
-      // SIMPLIFICATION FOR DEMO: 
-      // We will calculate the total based on the selected items. 
-      // To show "Best Store", we need to know the price of 'Rice' at Store B even if the user added 'Rice' from Store A.
-      // Since we don't persist all search results, we will simulate a "Estimated Total" for other stores
-      // based on the mock store variance defined in constants/logic.
-      
-      // Let's rely on the cart items purely for now, but grouped by where they were added from 
-      // is not enough. We want to show: "If you buy EVERYTHING at Store A..."
-      
-      // Hack for demo visualization: 
-      // Use the store's "id" hash to deterine a deterministic multiplier for the base price 
-      // to consistenty show difference between stores.
-      
-      let storeMultiplier = 1;
-      if (store.id === 'store_1') storeMultiplier = 1.0; // Base
-      if (store.id === 'store_2') storeMultiplier = 0.92; // 8% Cheaper generally
-      if (store.id === 'store_3') storeMultiplier = 1.05; // 5% More expensive
+      // Logic to estimate the cart total at this specific store
+      const targetStoreFactor = STORE_PRICING_FACTORS[store.id] || 1.0;
 
       cart.forEach(item => {
-         // Re-calculate estimated price for THIS store
-         // Remove the variance of the item's original store and apply this store's multiplier
-         const estimatedPrice = item.price * storeMultiplier;
+         // 1. Normalize the price to find the approximate "Base Price" of the product.
+         // We divide by the factor of the store where the item was originally found.
+         const sourceStoreFactor = STORE_PRICING_FACTORS[item.storeId] || 1.0;
+         const estimatedBasePrice = item.price / sourceStoreFactor;
+
+         // 2. Project this base price to the target store using its factor.
+         // This gives us a realistic estimate of what this item would cost at this store,
+         // maintaining the integrity of the "Expensive" vs "Cheap" store model.
+         const estimatedPrice = estimatedBasePrice * targetStoreFactor;
+
          total += estimatedPrice * item.quantity;
          storeItems.push({ ...item, price: estimatedPrice, storeName: store.name, storeId: store.id });
       });
@@ -66,6 +48,7 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart }) => {
   if (cart.length === 0) return null;
 
   const bestOption = optimizedData[0];
+  const worstOption = optimizedData[optimizedData.length - 1];
 
   return (
     <div className="space-y-4">
@@ -89,7 +72,7 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart }) => {
         
         {optimizedData.length > 1 && (
              <div className="mt-4 pt-4 border-t border-white/20 text-sm">
-                <p>Economia de <span className="font-bold text-yellow-300">R$ {(optimizedData[optimizedData.length-1].totalPrice - bestOption.totalPrice).toFixed(2)}</span> comparado ao mais caro.</p>
+                <p>Economia de <span className="font-bold text-yellow-300">R$ {(worstOption.totalPrice - bestOption.totalPrice).toFixed(2)}</span> comparado ao mais caro.</p>
              </div>
         )}
       </div>

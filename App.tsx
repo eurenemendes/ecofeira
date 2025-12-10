@@ -15,9 +15,16 @@ function App() {
   const [recipeSuggestion, setRecipeSuggestion] = useState<string>('');
   const [isLoadingRecipe, setIsLoadingRecipe] = useState(false);
 
-  const handleSearch = async (e?: React.FormEvent) => {
+  const handleSearch = async (e?: React.FormEvent, queryOverride?: string) => {
     if (e) e.preventDefault();
-    if (!query.trim()) return;
+    
+    // Use override if provided, otherwise fallback to state query
+    const termToSearch = queryOverride !== undefined ? queryOverride : query;
+    
+    if (!termToSearch.trim()) return;
+
+    // Update the state if we used an override so the UI input reflects it
+    if (queryOverride) setQuery(queryOverride);
 
     setIsSearching(true);
     setView(AppView.SEARCH);
@@ -25,7 +32,7 @@ function App() {
     // Clear previous results to show loading state effectively
     setSearchResults([]);
     
-    const results = await searchProductsWithGemini(query);
+    const results = await searchProductsWithGemini(termToSearch);
     setSearchResults(results);
     setIsSearching(false);
   };
@@ -96,7 +103,7 @@ function App() {
           {INITIAL_SUGGESTIONS.map(term => (
             <button 
               key={term}
-              onClick={() => { setQuery(term); handleSearch(); }}
+              onClick={() => handleSearch(undefined, term)}
               className="px-4 py-2 bg-white border border-gray-200 rounded-full text-sm text-gray-600 hover:border-emerald-500 hover:text-emerald-600 transition-colors shadow-sm"
             >
               {term}

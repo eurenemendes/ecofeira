@@ -1,6 +1,6 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { ProductBase, ProductOffer } from "../types";
-import { MOCK_STORES } from "../constants";
+import { MOCK_STORES, STORE_PRICING_FACTORS } from "../constants";
 
 // Initialize Gemini Client
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -48,16 +48,21 @@ export const searchProductsWithGemini = async (query: string): Promise<ProductOf
     productsData.forEach((product, index) => {
       // Create an offer for each store
       MOCK_STORES.forEach((store) => {
-        // Randomize price slightly (-15% to +15%)
-        const variance = (Math.random() * 0.3) - 0.15;
-        const finalPrice = product.basePrice * (1 + variance);
-        const isPromo = variance < -0.10; // If it's more than 10% cheaper, flag as promo
+        // Calculate price based on store factor + random noise
+        const storeFactor = STORE_PRICING_FACTORS[store.id] || 1.0;
+        // Random variance between -5% and +5% per product per store
+        const randomVariance = (Math.random() * 0.10) - 0.05; 
+        
+        const finalPrice = product.basePrice * storeFactor * (1 + randomVariance);
+        
+        // Define promo threshold relative to the calculated price
+        const isPromo = randomVariance < -0.03; 
 
         offers.push({
           id: `offer_${index}_${store.id}`,
           baseProductId: `prod_${index}`,
           name: product.name,
-          category: product.category, // Added category to satisfy interface but extended ProductOffer doesn't strictly need it in UI usually, good to have
+          category: product.category, 
           storeId: store.id,
           storeName: store.name,
           storeColor: store.color,
