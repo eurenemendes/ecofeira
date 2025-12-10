@@ -3,7 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>EcoFeira</title>
+    <title>EcoFeira - Comparador de Preços</title>
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -21,7 +23,11 @@
         },
       }
     </script>
+
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- CSS Reset & Styles -->
     <style>
       body {
         font-family: 'Inter', sans-serif;
@@ -36,19 +42,673 @@
         scrollbar-width: none;
       }
     </style>
-  <script type="importmap">
+
+    <!-- Babel for JSX/TS transformation in browser -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Import Maps for Modules -->
+    <script type="importmap">
 {
   "imports": {
     "react": "https://aistudiocdn.com/react@^19.2.1",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
-    "react/": "https://aistudiocdn.com/react@^19.2.1/",
+    "react-dom/client": "https://aistudiocdn.com/react-dom@^19.2.1/client",
     "@google/genai": "https://aistudiocdn.com/@google/genai@^1.32.0",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.556.0"
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.556.0",
+    "react/": "https://aistudiocdn.com/react@^19.2.1/",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/"
   }
 }
 </script>
-</head>
+  </head>
   <body>
     <div id="root"></div>
+
+    <script type="text/babel" data-type="module">
+      import React, { useState, useEffect, useCallback, useMemo } from 'react';
+      import { createRoot } from 'react-dom/client';
+      import { GoogleGenAI, Type } from "@google/genai";
+      import { 
+        Search, 
+        ShoppingCart, 
+        ArrowLeft, 
+        Trash2, 
+        MapPin, 
+        Store as StoreIcon, 
+        ChefHat, 
+        TrendingDown, 
+        Plus 
+      } from 'lucide-react';
+
+      // --- CONFIGURAÇÃO DE AMBIENTE ---
+      // Polyfill para process.env caso não exista
+      if (!window.process) {
+        window.process = { env: { API_KEY: '' } };
+      }
+
+      // --- TYPES ---
+      // Interfaces não geram código JS, mas ajudam o Babel a entender o contexto TS
+      
+      const AppView = {
+        HOME: 'HOME',
+        SEARCH: 'SEARCH',
+        CART: 'CART',
+      };
+
+      // --- CONSTANTS ---
+      
+      const MOCK_STORES = [
+        {
+          id: 'store_1',
+          name: 'Mercado Preço Bom',
+          color: 'bg-red-500',
+          logo: '🍎',
+          distance: '1.2 km'
+        },
+        {
+          id: 'store_2',
+          name: 'Supermercado Central',
+          color: 'bg-blue-600',
+          logo: '🛒',
+          distance: '0.5 km'
+        },
+        {
+          id: 'store_3',
+          name: 'Hortifruti da Esquina',
+          color: 'bg-green-600',
+          logo: '🥦',
+          distance: '2.0 km'
+        }
+      ];
+
+      const STORE_PRICING_FACTORS = {
+        'store_1': 1.0,   // Base price
+        'store_2': 0.94,  // ~6% cheaper
+        'store_3': 1.08   // ~8% more expensive
+      };
+
+      const INITIAL_SUGGESTIONS = [
+        "Arroz 5kg",
+        "Feijão Carioca",
+        "Leite Integral",
+        "Café em Pó",
+        "Azeite de Oliva",
+        "Detergente",
+        "Banana Prata"
+      ];
+
+      // --- SERVICES ---
+
+      // Initialize Gemini Client
+      // Nota: O usuário deve fornecer a chave API através da variável de ambiente ou injetada de outra forma.
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+      const productSchema = {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            name: { type: Type.STRING, description: "Nome comum do produto (ex: Arroz Branco Tio João)" },
+            category: { type: Type.STRING, description: "Categoria do produto (ex: Mercearia, Limpeza)" },
+            basePrice: { type: Type.NUMBER, description: "Preço médio estimado em reais (BRL) para este item." },
+            unit: { type: Type.STRING, description: "Unidade de medida comum (ex: 5kg, 1L, un)" },
+          },
+          required: ["name", "category", "basePrice", "unit"],
+        },
+      };
+
+      const searchProductsWithGemini = async (query) => {
+        try {
+          // Se não houver chave de API configurada, retornar array vazio para não quebrar a UI
+          if (!process.env.API_KEY) {
+             console.warn("API Key não encontrada. Configure process.env.API_KEY.");
+             // Fallback simples para demonstração se não houver API Key
+             return [];
+          }
+
+          const model = "gemini-2.5-flash";
+          const prompt = `Gere uma lista de 5 a 8 produtos de supermercado específicos e realistas baseados na busca: "${query}". 
+          O contexto é o mercado brasileiro. Seja específico nas marcas e tipos se a busca for vaga. 
+          Retorne apenas JSON válido.`;
+
+          const response = await ai.models.generateContent({
+            model: model,
+            contents: prompt,
+            config: {
+              responseMimeType: "application/json",
+              responseSchema: productSchema,
+              temperature: 0.3,
+            },
+          });
+
+          const productsData = JSON.parse(response.text || "[]");
+
+          // Expand generic products into specific store offers
+          const offers = [];
+
+          productsData.forEach((product, index) => {
+            MOCK_STORES.forEach((store) => {
+              const storeFactor = STORE_PRICING_FACTORS[store.id] || 1.0;
+              const randomVariance = (Math.random() * 0.10) - 0.05; 
+              const finalPrice = product.basePrice * storeFactor * (1 + randomVariance);
+              const isPromo = randomVariance < -0.03; 
+
+              offers.push({
+                id: `offer_${index}_${store.id}`,
+                baseProductId: `prod_${index}`,
+                name: product.name,
+                category: product.category, 
+                storeId: store.id,
+                storeName: store.name,
+                storeColor: store.color,
+                price: parseFloat(finalPrice.toFixed(2)),
+                unit: product.unit,
+                imageUrl: `https://picsum.photos/seed/${product.name.replace(/\s/g, '')}${store.id}/200/200`,
+                isPromo: isPromo
+              }); 
+            });
+          });
+
+          return offers;
+
+        } catch (error) {
+          console.error("Gemini Search Error:", error);
+          return [];
+        }
+      };
+
+      const suggestRecipe = async (items) => {
+          if (items.length === 0 || !process.env.API_KEY) return "";
+          try {
+              const prompt = `Eu tenho esses ingredientes: ${items.join(', ')}. Sugira uma receita brasileira simples e curta (máximo 300 caracteres) que eu possa fazer.`;
+              const response = await ai.models.generateContent({
+                  model: "gemini-2.5-flash",
+                  contents: prompt,
+              });
+              return response.text || "";
+          } catch (e) {
+              return "";
+          }
+      }
+
+      // --- COMPONENTS ---
+
+      // Component: ProductCard
+      const ProductCard = ({ product, onAdd }) => {
+        return (
+          <div className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden flex flex-col h-full border border-gray-100">
+            <div className="relative h-40 overflow-hidden bg-gray-50 group">
+              <img 
+                src={product.imageUrl} 
+                alt={product.name} 
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              {product.isPromo && (
+                <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-lg shadow-sm">
+                  OFERTA
+                </div>
+              )}
+              <div className={`absolute bottom-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full text-white bg-opacity-90 ${product.storeColor.replace('bg-', 'bg-')}`}>
+                 {product.storeName}
+              </div>
+            </div>
+            
+            <div className="p-4 flex flex-col flex-grow">
+              <div className="flex-grow">
+                  <h3 className="font-semibold text-gray-800 line-clamp-2 leading-tight mb-1">{product.name}</h3>
+                  <p className="text-xs text-gray-400 mb-3">{product.unit}</p>
+              </div>
+              
+              <div className="flex items-end justify-between mt-2">
+                <div>
+                  <span className="text-xs text-gray-400 font-medium block">Preço</span>
+                  <span className="text-xl font-bold text-emerald-600">
+                    R$ {product.price.toFixed(2).replace('.', ',')}
+                  </span>
+                </div>
+                <button 
+                  onClick={() => onAdd(product)}
+                  className="w-10 h-10 rounded-full bg-gray-100 hover:bg-emerald-500 hover:text-white text-emerald-600 flex items-center justify-center transition-colors shadow-sm"
+                  aria-label="Adicionar ao carrinho"
+                >
+                  <Plus size={20} strokeWidth={3} />
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      // Component: CartOptimizer
+      const CartOptimizer = ({ cart }) => {
+        const optimizedData = useMemo(() => {
+          if (cart.length === 0) return [];
+
+          return MOCK_STORES.map(store => {
+            let total = 0;
+            let missingCount = 0;
+            const storeItems = [];
+
+            // Logic to estimate the cart total at this specific store
+            const targetStoreFactor = STORE_PRICING_FACTORS[store.id] || 1.0;
+
+            cart.forEach(item => {
+               // 1. Normalize the price to find the approximate "Base Price"
+               const sourceStoreFactor = STORE_PRICING_FACTORS[item.storeId] || 1.0;
+               const estimatedBasePrice = item.price / sourceStoreFactor;
+
+               // 2. Project this base price to the target store
+               const estimatedPrice = estimatedBasePrice * targetStoreFactor;
+
+               total += estimatedPrice * item.quantity;
+               storeItems.push({ ...item, price: estimatedPrice, storeName: store.name, storeId: store.id });
+            });
+
+            return {
+              storeId: store.id,
+              storeName: store.name,
+              totalPrice: total,
+              missingItems: missingCount,
+              items: storeItems
+            };
+          }).sort((a, b) => a.totalPrice - b.totalPrice);
+        }, [cart]);
+
+        if (cart.length === 0) return null;
+
+        const bestOption = optimizedData[0];
+        const worstOption = optimizedData[optimizedData.length - 1];
+
+        return (
+          <div className="space-y-4">
+            <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl p-6 text-white shadow-lg">
+              <div className="flex items-center gap-2 mb-2 opacity-90">
+                <TrendingDown size={24} />
+                <h3 className="font-semibold text-lg">Melhor Opção de Compra</h3>
+              </div>
+              <div className="flex justify-between items-end">
+                <div>
+                  <p className="text-sm font-medium opacity-80 mb-1">Comprando tudo no:</p>
+                  <div className="text-2xl font-bold flex items-center gap-2">
+                     {bestOption.storeName}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm opacity-80">Total Estimado</p>
+                  <p className="text-3xl font-extrabold">R$ {bestOption.totalPrice.toFixed(2)}</p>
+                </div>
+              </div>
+              
+              {optimizedData.length > 1 && (
+                   <div className="mt-4 pt-4 border-t border-white/20 text-sm">
+                      <p>Economia de <span className="font-bold text-yellow-300">R$ {(worstOption.totalPrice - bestOption.totalPrice).toFixed(2)}</span> comparado ao mais caro.</p>
+                   </div>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              <h4 className="font-medium text-gray-700 ml-1">Comparativo por Mercado</h4>
+              {optimizedData.map((opt, idx) => (
+                <div key={opt.storeId} className={`relative p-4 rounded-xl border-2 transition-all ${idx === 0 ? 'border-emerald-500 bg-emerald-50' : 'border-transparent bg-white shadow-sm'}`}>
+                  {idx === 0 && (
+                      <div className="absolute -top-3 left-4 bg-emerald-500 text-white text-xs px-2 py-1 rounded-full font-bold uppercase tracking-wide">
+                          Mais Barato
+                      </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg shadow-sm ${idx === 0 ? 'bg-white' : 'bg-gray-100'}`}>
+                              {MOCK_STORES.find(s => s.id === opt.storeId)?.logo}
+                          </div>
+                          <div>
+                              <h5 className="font-semibold text-gray-800">{opt.storeName}</h5>
+                              <div className="flex items-center gap-1 text-xs text-gray-500">
+                                   <MapPin size={12} />
+                                   {MOCK_STORES.find(s => s.id === opt.storeId)?.distance}
+                              </div>
+                          </div>
+                      </div>
+                      <div className="text-right">
+                          <div className="font-bold text-gray-900">R$ {opt.totalPrice.toFixed(2)}</div>
+                          {idx !== 0 && (
+                              <div className="text-xs text-red-500 font-medium">
+                                  + R$ {(opt.totalPrice - bestOption.totalPrice).toFixed(2)}
+                              </div>
+                          )}
+                      </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      };
+
+      // --- APP COMPONENT ---
+
+      function App() {
+        const [view, setView] = useState(AppView.HOME);
+        const [query, setQuery] = useState('');
+        const [isSearching, setIsSearching] = useState(false);
+        const [searchResults, setSearchResults] = useState([]);
+        const [cart, setCart] = useState([]);
+        const [recipeSuggestion, setRecipeSuggestion] = useState('');
+        const [isLoadingRecipe, setIsLoadingRecipe] = useState(false);
+
+        const handleSearch = async (e, queryOverride) => {
+          if (e) e.preventDefault();
+          
+          const termToSearch = queryOverride !== undefined ? queryOverride : query;
+          
+          if (!termToSearch.trim()) return;
+
+          if (queryOverride) setQuery(queryOverride);
+
+          setIsSearching(true);
+          setView(AppView.SEARCH);
+          setSearchResults([]);
+          
+          const results = await searchProductsWithGemini(termToSearch);
+          setSearchResults(results);
+          setIsSearching(false);
+        };
+
+        const addToCart = (product) => {
+          setCart(prev => {
+            const existing = prev.find(item => item.id === product.id);
+            if (existing) {
+              return prev.map(item => 
+                item.id === product.id 
+                  ? { ...item, quantity: item.quantity + 1 } 
+                  : item
+              );
+            }
+            return [...prev, { ...product, quantity: 1 }];
+          });
+        };
+
+        const removeFromCart = (itemId) => {
+          setCart(prev => prev.filter(item => item.id !== itemId));
+        };
+
+        const updateQuantity = (itemId, delta) => {
+          setCart(prev => prev.map(item => {
+            if (item.id === itemId) {
+              return { ...item, quantity: Math.max(1, item.quantity + delta) };
+            }
+            return item;
+          }));
+        };
+
+        const cartItemCount = cart.reduce((acc, item) => acc + item.quantity, 0);
+
+        const generateRecipe = useCallback(async () => {
+            setIsLoadingRecipe(true);
+            const itemNames = cart.map(i => i.name);
+            const recipe = await suggestRecipe(itemNames);
+            setRecipeSuggestion(recipe);
+            setIsLoadingRecipe(false);
+        }, [cart]);
+
+        useEffect(() => {
+          if (view === AppView.CART && cart.length > 2 && !recipeSuggestion) {
+              generateRecipe();
+          }
+        }, [view, cart.length, recipeSuggestion, generateRecipe]);
+
+
+        // ---- Render Helpers ----
+
+        const renderHome = () => (
+          <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 text-center">
+            <div className="mb-8 p-4 bg-emerald-100 rounded-full text-emerald-600">
+              <StoreIcon size={48} />
+            </div>
+            <h1 className="text-4xl font-extrabold text-gray-800 mb-4 tracking-tight">
+              Economize na <span className="text-emerald-500">EcoFeira</span>
+            </h1>
+            <p className="text-gray-500 max-w-md mb-8">
+              Compare preços de supermercados locais, encontre as melhores ofertas e planeje sua compra inteligente.
+            </p>
+            
+            <div className="w-full max-w-md space-y-3">
+              <p className="text-sm font-semibold text-gray-400 uppercase tracking-wider text-left pl-2">Sugestões Populares</p>
+              <div className="flex flex-wrap gap-2">
+                {INITIAL_SUGGESTIONS.map(term => (
+                  <button 
+                    key={term}
+                    onClick={() => handleSearch(undefined, term)}
+                    className="px-4 py-2 bg-white border border-gray-200 rounded-full text-sm text-gray-600 hover:border-emerald-500 hover:text-emerald-600 transition-colors shadow-sm"
+                  >
+                    {term}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+
+        const renderSearchResults = () => (
+          <div className="px-4 py-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-gray-800">
+                Resultados para "{query}"
+              </h2>
+              <span className="text-sm text-gray-500">{searchResults.length} ofertas encontradas</span>
+            </div>
+
+            {isSearching ? (
+               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {[1,2,3,4,5,6].map(i => (
+                      <div key={i} className="bg-white h-72 rounded-2xl animate-pulse shadow-sm p-4">
+                          <div className="bg-gray-200 h-32 rounded-xl mb-4 w-full"></div>
+                          <div className="bg-gray-200 h-4 w-3/4 rounded mb-2"></div>
+                          <div className="bg-gray-200 h-4 w-1/2 rounded mb-4"></div>
+                          <div className="bg-gray-200 h-8 w-1/3 rounded"></div>
+                      </div>
+                  ))}
+               </div>
+            ) : searchResults.length === 0 ? (
+              <div className="text-center py-20 text-gray-400">
+                  <p className="text-lg">Nenhum produto encontrado.</p>
+                  <p>Tente buscar por termos mais genéricos como "Arroz" ou "Leite".</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-20">
+                {searchResults.map(offer => (
+                  <ProductCard 
+                    key={offer.id} 
+                    product={offer} 
+                    onAdd={addToCart} 
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        );
+
+        const renderCart = () => (
+          <div className="max-w-3xl mx-auto px-4 py-6 pb-32">
+              <div className="flex items-center gap-2 mb-6">
+                   <button onClick={() => setView(AppView.SEARCH)} className="p-2 hover:bg-gray-200 rounded-full">
+                      <ArrowLeft size={20} />
+                   </button>
+                   <h2 className="text-2xl font-bold text-gray-800">Sua Lista de Compras</h2>
+              </div>
+
+              {cart.length === 0 ? (
+                  <div className="text-center py-16 bg-white rounded-3xl shadow-sm border border-dashed border-gray-300">
+                      <ShoppingCart size={48} className="mx-auto text-gray-300 mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900">Sua lista está vazia</h3>
+                      <p className="text-gray-500 mb-6">Adicione itens para ver a mágica da comparação de preços.</p>
+                      <button 
+                          onClick={() => setView(AppView.HOME)}
+                          className="px-6 py-2 bg-emerald-500 text-white rounded-full font-medium hover:bg-emerald-600 transition"
+                      >
+                          Começar a pesquisar
+                      </button>
+                  </div>
+              ) : (
+                  <div className="grid md:grid-cols-2 gap-8">
+                      
+                      {/* List Items */}
+                      <div className="space-y-4">
+                          {cart.map(item => (
+                              <div key={item.id} className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex gap-3 items-center">
+                                  <img src={item.imageUrl} alt={item.name} className="w-16 h-16 rounded-lg object-cover bg-gray-100" />
+                                  <div className="flex-grow">
+                                      <h4 className="font-medium text-gray-800 text-sm leading-tight">{item.name}</h4>
+                                      <p className="text-xs text-gray-500 mt-1">{item.storeName}</p>
+                                      <div className="text-emerald-600 font-bold text-sm mt-1">R$ {item.price.toFixed(2)}</div>
+                                  </div>
+                                  <div className="flex flex-col items-end gap-2">
+                                      <button onClick={() => removeFromCart(item.id)} className="text-gray-300 hover:text-red-500 transition-colors">
+                                          <Trash2 size={16} />
+                                      </button>
+                                      <div className="flex items-center bg-gray-50 rounded-lg border border-gray-200">
+                                          <button onClick={() => updateQuantity(item.id, -1)} className="px-2 py-1 text-gray-600 font-medium hover:bg-gray-100 rounded-l-lg">-</button>
+                                          <span className="text-xs font-semibold px-1 min-w-[20px] text-center">{item.quantity}</span>
+                                          <button onClick={() => updateQuantity(item.id, 1)} className="px-2 py-1 text-gray-600 font-medium hover:bg-gray-100 rounded-r-lg">+</button>
+                                      </div>
+                                  </div>
+                              </div>
+                          ))}
+                          
+                          {/* Gemini Recipe Suggestion Block */}
+                          {cart.length > 2 && (
+                              <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 mt-6">
+                                  <div className="flex items-center gap-2 text-orange-600 mb-2">
+                                      <ChefHat size={20} />
+                                      <h4 className="font-bold text-sm uppercase tracking-wide">Dica do Chef AI</h4>
+                                  </div>
+                                  {isLoadingRecipe ? (
+                                      <div className="h-16 animate-pulse bg-orange-100 rounded-lg w-full"></div>
+                                  ) : (
+                                      <p className="text-sm text-gray-700 italic leading-relaxed">
+                                          "{recipeSuggestion || "Pensando em uma receita..."}"
+                                      </p>
+                                  )}
+                              </div>
+                          )}
+                      </div>
+
+                      {/* Optimization Panel */}
+                      <div className="md:sticky md:top-24 h-fit">
+                          <CartOptimizer cart={cart} />
+                          
+                          <button className="w-full mt-6 bg-gray-900 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-black transition-transform active:scale-95 flex items-center justify-center gap-2">
+                              <span>Finalizar Lista</span>
+                              <ArrowLeft size={16} className="rotate-180" />
+                          </button>
+                      </div>
+                  </div>
+              )}
+          </div>
+        );
+
+        return (
+          <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
+            
+            {/* Sticky Header */}
+            <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200 shadow-sm transition-all">
+              <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
+                  <div 
+                      className="flex items-center gap-2 cursor-pointer group" 
+                      onClick={() => { setView(AppView.HOME); setQuery(''); }}
+                  >
+                      <div className="w-8 h-8 bg-gradient-to-br from-emerald-400 to-teal-600 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-sm group-hover:shadow-emerald-200 transition-shadow">
+                          E
+                      </div>
+                      <span className="font-bold text-xl tracking-tight text-gray-800">EcoFeira</span>
+                  </div>
+
+                  {/* Desktop Search Bar */}
+                  {view !== AppView.HOME && (
+                      <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }} className="hidden md:flex flex-1 max-w-md mx-8 relative">
+                          <input 
+                              type="text" 
+                              placeholder="Buscar produtos (ex: Leite, Pão...)" 
+                              className="w-full pl-10 pr-4 py-2 bg-gray-100 border-transparent focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 rounded-full text-sm transition-all outline-none"
+                              value={query}
+                              onChange={(e) => setQuery(e.target.value)}
+                          />
+                          <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
+                      </form>
+                  )}
+
+                  <button 
+                      onClick={() => setView(AppView.CART)} 
+                      className="relative p-2 hover:bg-gray-100 rounded-full transition-colors group"
+                  >
+                      <ShoppingCart className={`text-gray-600 group-hover:text-emerald-600 transition-colors ${view === AppView.CART ? 'text-emerald-600 fill-current' : ''}`} />
+                      {cartItemCount > 0 && (
+                          <span className="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full shadow-sm ring-2 ring-white">
+                              {cartItemCount}
+                          </span>
+                      )}
+                  </button>
+              </div>
+
+              {/* Mobile Search Bar (Sub-header) */}
+              {view !== AppView.HOME && (
+                   <div className="md:hidden px-4 pb-3">
+                       <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }} className="relative">
+                          <input 
+                              type="text" 
+                              placeholder="Buscar produtos..." 
+                              className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm shadow-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                              value={query}
+                              onChange={(e) => setQuery(e.target.value)}
+                          />
+                          <Search className="absolute left-3 top-3.5 text-gray-400" size={18} />
+                      </form>
+                   </div>
+              )}
+            </header>
+
+            {/* Main Content Area */}
+            <main className="flex-grow max-w-5xl mx-auto w-full">
+              {view === AppView.HOME && renderHome()}
+              
+              {view === AppView.HOME && (
+                   <div className="px-4 -mt-6">
+                      <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }} className="relative max-w-md mx-auto">
+                          <input 
+                              type="text" 
+                              placeholder="O que você precisa comprar hoje?" 
+                              className="w-full pl-12 pr-4 py-4 bg-white border-2 border-emerald-100 hover:border-emerald-300 focus:border-emerald-500 rounded-2xl shadow-lg text-lg outline-none transition-all placeholder:text-gray-400"
+                              value={query}
+                              onChange={(e) => setQuery(e.target.value)}
+                              autoFocus
+                          />
+                          <Search className="absolute left-4 top-5 text-emerald-500" size={24} />
+                          <button type="submit" className="absolute right-2 top-2 bottom-2 bg-emerald-500 text-white px-4 rounded-xl font-medium hover:bg-emerald-600 transition-colors">
+                              Buscar
+                          </button>
+                      </form>
+                   </div>
+              )}
+
+              {view === AppView.SEARCH && renderSearchResults()}
+              {view === AppView.CART && renderCart()}
+            </main>
+
+          </div>
+        );
+      }
+
+      // --- INITIALIZATION ---
+
+      const rootElement = document.getElementById('root');
+      if (!rootElement) {
+        throw new Error("Could not find root element to mount to");
+      }
+
+      const root = createRoot(rootElement);
+      root.render(
+        <React.StrictMode>
+          <App />
+        </React.StrictMode>
+      );
+    </script>
   </body>
 </html>
