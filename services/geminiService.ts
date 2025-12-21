@@ -1,12 +1,10 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { ProductOffer } from "../types";
 import { MOCK_STORES, RAW_PRODUCTS } from "../constants";
 
-// Correct initialization using named parameter and process.env.API_KEY
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 export const searchProductsWithGemini = async (query: string): Promise<ProductOffer[]> => {
+  // Initialize inside the function to ensure process.env.API_KEY is available and to follow guidelines
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const lowerQuery = query.toLowerCase().trim();
   
   // Use Gemini to intelligently match products or categories from the local database
@@ -30,7 +28,7 @@ export const searchProductsWithGemini = async (query: string): Promise<ProductOf
       }
     });
 
-    const jsonText = response.text; // Direct property access as per guidelines
+    const jsonText = response.text;
     if (jsonText) {
       matchedIds = JSON.parse(jsonText);
     }
@@ -71,6 +69,7 @@ export const searchProductsWithGemini = async (query: string): Promise<ProductOf
 export const suggestRecipe = async (items: string[]): Promise<string> => {
   if (items.length === 0) return "Combine seus itens para uma refeição deliciosa!";
 
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
