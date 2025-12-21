@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Search, ShoppingCart, Store as StoreIcon, Trash2, History, X, Moon, Sun, Filter, ArrowUpDown, Tag, ArrowUp } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { Search, ShoppingCart, Store as StoreIcon, Trash2, History, X, Moon, Sun, Filter, ArrowUpDown, Tag, ArrowUp, ChevronRight } from 'lucide-react';
 import { searchProductsWithGemini } from './services/geminiService';
 import { ProductOffer, CartItem, AppView } from './types';
 import { INITIAL_SUGGESTIONS, MOCK_STORES, RAW_PRODUCTS } from './constants';
@@ -11,12 +11,17 @@ type SortOption = 'price_asc' | 'price_desc' | 'name_asc';
 function App() {
   const [view, setView] = useState<AppView>(AppView.HOME);
   const [query, setQuery] = useState('');
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<ProductOffer[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('ecofeira_theme') === 'dark');
   const [showBackToTop, setShowBackToTop] = useState(false);
+  
+  const searchRef = useRef<HTMLDivElement>(null);
+  const headerSearchRef = useRef<HTMLDivElement>(null);
 
   // Filtros
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -37,6 +42,20 @@ function App() {
     }
   }, [isDarkMode]);
 
+  // Fechar sugestões ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        (searchRef.current && !searchRef.current.contains(event.target as Node)) &&
+        (headerSearchRef.current && !headerSearchRef.current.contains(event.target as Node))
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   useEffect(() => {
     const handleScroll = () => {
       setShowBackToTop(window.scrollY > 400);
@@ -55,12 +74,36 @@ function App() {
   useEffect(() => { localStorage.setItem('ecofeira_history', JSON.stringify(searchHistory)); }, [searchHistory]);
   useEffect(() => { localStorage.setItem('ecofeira_cart', JSON.stringify(cart)); }, [cart]);
 
+  // Lógica de Sugestões em Tempo Real
+  const handleInputChange = (val: string) => {
+    setQuery(val);
+    if (val.trim().length > 1) {
+      const lowerVal = val.toLowerCase();
+      // Filtra produtos e categorias que contenham o termo
+      const matches = RAW_PRODUCTS
+        .filter(p => 
+          p.produto.toLowerCase().includes(lowerVal) || 
+          p.categoria.toLowerCase().includes(lowerVal)
+        )
+        .map(p => p.produto)
+        .filter((value, index, self) => self.indexOf(value) === index) // Unique
+        .slice(0, 6);
+      
+      setSuggestions(matches);
+      setShowSuggestions(true);
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
   const handleSearch = async (e?: React.FormEvent, queryOverride?: string) => {
     if (e) e.preventDefault();
     const term = queryOverride || query;
     if (!term.trim()) return;
-    if (queryOverride) setQuery(term);
     
+    setQuery(term);
+    setShowSuggestions(false);
     setSearchHistory(prev => [term, ...prev.filter(i => i !== term)].slice(0, 5));
     setIsSearching(true);
     setView(AppView.SEARCH);
@@ -116,6 +159,27 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Componente de lista de sugestões
+  const SuggestionsList = ({ list }: { list: string[] }) => (
+    <div className="suggestions-dropdown animate">
+      {list.length > 0 ? (
+        list.map((item, idx) => (
+          <div 
+            key={idx} 
+            className="suggestion-item"
+            onClick={() => handleSearch(undefined, item)}
+          >
+            <Search size={14} className="suggestion-icon" />
+            <span className="suggestion-text">{item}</span>
+            <ChevronRight size={14} className="suggestion-chevron" />
+          </div>
+        ))
+      ) : (
+        <div className="suggestion-item-empty">Sem sugestões para "{query}"</div>
+      )}
+    </div>
+  );
+
   return (
     <div className="app-wrapper">
       <header>
@@ -126,16 +190,20 @@ function App() {
           </div>
 
           {view !== AppView.HOME && (
-            <form onSubmit={handleSearch} className="search-container">
-              <Search className="search-icon" size={18} />
-              <input 
-                type="text" 
-                className="search-input" 
-                placeholder="Buscar produtos..." 
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-            </form>
+            <div className="search-container" ref={headerSearchRef}>
+              <form onSubmit={handleSearch}>
+                <Search className="search-icon" size={18} />
+                <input 
+                  type="text" 
+                  className="search-input" 
+                  placeholder="Buscar produtos..." 
+                  value={query}
+                  onChange={(e) => handleInputChange(e.target.value)}
+                  onFocus={() => query.length > 1 && setShowSuggestions(true)}
+                />
+              </form>
+              {showSuggestions && <SuggestionsList list={suggestions} />}
+            </div>
           )}
 
           <div className="flex gap-2">
@@ -160,19 +228,23 @@ function App() {
               Os melhores preços de {RAW_PRODUCTS.length} produtos em 5 supermercados locais.
             </p>
             
-            <form onSubmit={handleSearch} style={{position: 'relative', marginBottom: '40px'}}>
-               <Search style={{position: 'absolute', left: '20px', top: '18px', color: 'var(--primary)'}} size={24} />
-               <input 
-                type="text" 
-                placeholder="O que você precisa hoje?" 
-                style={{width: '100%', padding: '18px 20px 18px 55px', borderRadius: '20px', border: '2px solid var(--border)', background: 'var(--card-bg)', color: 'var(--text-main)', fontSize: '1.1rem', outline: 'none', boxShadow: 'var(--shadow-md)'}}
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-               />
-               <button className="btn btn-primary" style={{position: 'absolute', right: '8px', top: '8px', bottom: '8px', borderRadius: '14px'}}>
-                Buscar
-               </button>
-            </form>
+            <div style={{position: 'relative', marginBottom: '40px'}} ref={searchRef}>
+               <Search style={{position: 'absolute', left: '20px', top: '18px', color: 'var(--primary)', zIndex: 10}} size={24} />
+               <form onSubmit={handleSearch}>
+                <input 
+                  type="text" 
+                  placeholder="O que você precisa hoje?" 
+                  style={{width: '100%', padding: '18px 120px 18px 55px', borderRadius: '20px', border: '2px solid var(--border)', background: 'var(--card-bg)', color: 'var(--text-main)', fontSize: '1.1rem', outline: 'none', boxShadow: 'var(--shadow-md)', position: 'relative', zIndex: 5}}
+                  value={query}
+                  onChange={(e) => handleInputChange(e.target.value)}
+                  onFocus={() => query.length > 1 && setShowSuggestions(true)}
+                />
+                <button type="submit" className="btn btn-primary" style={{position: 'absolute', right: '8px', top: '8px', bottom: '8px', borderRadius: '14px', zIndex: 10}}>
+                  Buscar
+                </button>
+               </form>
+               {showSuggestions && <SuggestionsList list={suggestions} />}
+            </div>
 
             {searchHistory.length > 0 && (
               <div style={{ marginBottom: '30px', textAlign: 'left' }}>
@@ -344,9 +416,72 @@ function App() {
           border-radius: 50%; width: 18px; height: 18px; font-size: 0.65rem;
           display: flex; align-items: center; justify-content: center; fontWeight: bold;
         }
-        ::-webkit-scrollbar { height: 4px; }
-        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
         
+        .suggestions-dropdown {
+          position: absolute;
+          top: calc(100% + 8px);
+          left: 0;
+          right: 0;
+          background: var(--card-bg);
+          backdrop-filter: blur(12px);
+          border: 1px solid var(--border);
+          border-radius: 16px;
+          box-shadow: var(--shadow-lg);
+          z-index: 1000;
+          overflow: hidden;
+          padding: 8px;
+        }
+
+        .suggestion-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 16px;
+          cursor: pointer;
+          border-radius: 10px;
+          transition: all 0.2s;
+        }
+
+        .suggestion-item:hover {
+          background: var(--primary-light);
+          color: var(--primary);
+        }
+
+        .suggestion-icon {
+          color: var(--text-muted);
+          flex-shrink: 0;
+        }
+
+        .suggestion-item:hover .suggestion-icon {
+          color: var(--primary);
+        }
+
+        .suggestion-text {
+          flex: 1;
+          font-size: 0.9rem;
+          font-weight: 500;
+          text-align: left;
+        }
+
+        .suggestion-chevron {
+          opacity: 0;
+          transform: translateX(-5px);
+          transition: all 0.2s;
+          color: var(--primary);
+        }
+
+        .suggestion-item:hover .suggestion-chevron {
+          opacity: 1;
+          transform: translateX(0);
+        }
+
+        .suggestion-item-empty {
+          padding: 12px;
+          font-size: 0.85rem;
+          color: var(--text-muted);
+          text-align: center;
+        }
+
         .btn-back-to-top {
           position: fixed;
           bottom: 30px;
@@ -378,10 +513,6 @@ function App() {
         .btn-back-to-top:hover {
           background: var(--primary-hover);
           transform: translateY(-5px) scale(1.05);
-        }
-
-        .btn-back-to-top:active {
-          transform: translateY(0) scale(0.95);
         }
       `}</style>
     </div>
