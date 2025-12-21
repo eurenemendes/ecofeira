@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { ProductOffer } from "../types";
 import { MOCK_STORES, STORE_PRICING_FACTORS } from "../constants";
@@ -10,10 +9,10 @@ const productSchema = {
   items: {
     type: Type.OBJECT,
     properties: {
-      name: { type: Type.STRING, description: "Nome do produto (ex: Arroz 5kg)" },
-      category: { type: Type.STRING, description: "Categoria (Mercearia, Limpeza, Hortifruti)" },
-      basePrice: { type: Type.NUMBER, description: "Preço médio em reais" },
-      unit: { type: Type.STRING, description: "Unidade (kg, un, L)" },
+      name: { type: Type.STRING },
+      category: { type: Type.STRING },
+      basePrice: { type: Type.NUMBER },
+      unit: { type: Type.STRING },
     },
     required: ["name", "category", "basePrice", "unit"],
   },
@@ -42,14 +41,14 @@ export const searchProductsWithGemini = async (query: string): Promise<ProductOf
         offers.push({
           id: `off_${index}_${store.id}`,
           baseProductId: `prod_${index}`,
-          name: product.name,
-          category: product.category,
+          name: String(product.name),
+          category: String(product.category),
           storeId: store.id,
           storeName: store.name,
           storeColor: store.color,
           price: Number(finalPrice.toFixed(2)),
-          unit: product.unit,
-          imageUrl: "", // Removido conforme solicitado
+          unit: String(product.unit),
+          imageUrl: "",
           isPromo: variance < -0.03,
         });
       });
@@ -67,9 +66,9 @@ export const suggestRecipe = async (items: string[]): Promise<string> => {
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: `Sugira uma receita rápida com: ${items.join(", ")}. Máximo 200 caracteres.`,
+      contents: `Sugira uma receita rápida e curta usando apenas: ${items.join(", ")}.`,
     });
-    return response.text || "";
+    return String(response.text || "");
   } catch (e) {
     return "";
   }
