@@ -2,7 +2,7 @@ export interface ProductBase {
   id: string;
   name: string;
   category: string;
-  unit: string; // e.g., "kg", "unidade", "litro"
+  unit: string;
   basePrice: number;
   imageUrl?: string;
 }
@@ -11,7 +11,7 @@ export interface Store {
   id: string;
   name: string;
   color: string;
-  logo: string; // emoji or url
+  logo: string;
   distance: string;
 }
 
@@ -19,12 +19,12 @@ export interface ProductOffer {
   id: string;
   baseProductId: string;
   name: string;
-  // Added category property to fix TypeScript errors when accessing product.category
   category: string;
   storeId: string;
   storeName: string;
   storeColor: string;
-  price: number;
+  price: number; // Preço atual (promocional ou normal)
+  originalPrice: number; // Preço sem desconto
   unit: string;
   imageUrl: string;
   isPromo: boolean;

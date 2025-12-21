@@ -1,41 +1,91 @@
+
 import { Store } from './types';
 
 export const MOCK_STORES: Store[] = [
   {
-    id: 'store_1',
-    name: 'Mercado Preço Bom',
+    id: 'store_bh',
+    name: 'Supermercados BH',
     color: 'bg-red-500',
     logo: '🍎',
     distance: '1.2 km'
   },
   {
-    id: 'store_2',
-    name: 'Supermercado Central',
+    id: 'store_carrefour',
+    name: 'Carrefour',
     color: 'bg-blue-600',
     logo: '🛒',
     distance: '0.5 km'
   },
   {
-    id: 'store_3',
-    name: 'Hortifruti da Esquina',
-    color: 'bg-green-600',
-    logo: '🥦',
+    id: 'store_extra',
+    name: 'Extra',
+    color: 'bg-red-600',
+    logo: '📦',
     distance: '2.0 km'
+  },
+  {
+    id: 'store_pao',
+    name: 'Pão de Açúcar',
+    color: 'bg-green-700',
+    logo: '🍃',
+    distance: '1.5 km'
+  },
+  {
+    id: 'store_atacadao',
+    name: 'Atacadão',
+    color: 'bg-blue-800',
+    logo: '🏗️',
+    distance: '3.2 km'
   }
 ];
 
+// Added STORE_PRICING_FACTORS to fix missing export error in CartOptimizer.tsx
 export const STORE_PRICING_FACTORS: Record<string, number> = {
-  'store_1': 1.0,   // Base price
-  'store_2': 0.94,  // ~6% cheaper
-  'store_3': 1.08   // ~8% more expensive
+  'store_bh': 0.95,
+  'store_carrefour': 1.0,
+  'store_extra': 1.05,
+  'store_pao': 1.15,
+  'store_atacadao': 0.85
 };
 
+export const RAW_PRODUCTS = [
+  { id: 1, produto: "Arroz Branco Tipo 1 5kg", categoria: "Mercearia", preco_normal: 24.90, promocao: true, preco_promocional: 19.90, supermercado: "Supermercados BH" },
+  { id: 2, produto: "Leite Integral 1L", categoria: "Laticínios", preco_normal: 5.49, promocao: false, preco_promocional: null, supermercado: "Carrefour" },
+  { id: 3, produto: "Café em Pó 500g", categoria: "Mercearia", preco_normal: 18.90, promocao: true, preco_promocional: 15.90, supermercado: "Extra" },
+  { id: 4, produto: "Azeite de Oliva Extra Virgem 500ml", categoria: "Mercearia", preco_normal: 32.90, promocao: true, preco_promocional: 27.90, supermercado: "Pão de Açúcar" },
+  { id: 5, produto: "Peito de Frango Congelado 1kg", categoria: "Carnes e Aves", preco_normal: 19.90, promocao: false, preco_promocional: null, supermercado: "Atacadão" },
+  { id: 6, produto: "Sabão em Pó 2kg", categoria: "Limpeza", preco_normal: 22.90, promocao: true, preco_promocional: 18.90, supermercado: "Supermercados BH" },
+  { id: 7, produto: "Papel Higiênico 16 rolos", categoria: "Higiene", preco_normal: 29.90, promocao: false, preco_promocional: null, supermercado: "Carrefour" },
+  { id: 8, produto: "Refrigerante Cola 2L", categoria: "Bebidas", preco_normal: 8.90, promocao: true, preco_promocional: 6.90, supermercado: "Extra" },
+  { id: 9, produto: "Óleo de Soja 900ml", categoria: "Mercearia", preco_normal: 7.90, promocao: false, preco_promocional: null, supermercado: "Atacadão" },
+  { id: 10, produto: "Queijo Mussarela Fatiado 300g", categoria: "Laticínios", preco_normal: 16.90, promocao: true, preco_promocional: 13.90, supermercado: "Pão de Açúcar" },
+  { id: 11, produto: "Macarrão Espaguete 500g", categoria: "Mercearia", preco_normal: 4.90, promocao: true, preco_promocional: 3.50, supermercado: "Supermercados BH" },
+  { id: 12, produto: "Detergente Líquido 500ml", categoria: "Limpeza", preco_normal: 3.90, promocao: false, preco_promocional: null, supermercado: "Carrefour" },
+  { id: 13, produto: "Banana Nanica Kg", categoria: "Hortifruti", preco_normal: 5.90, promocao: true, preco_promocional: 4.50, supermercado: "Extra" },
+  { id: 14, produto: "Cerveja Lata 350ml", categoria: "Bebidas", preco_normal: 4.90, promocao: false, preco_promocional: null, supermercado: "Atacadão" },
+  { id: 15, produto: "Iogurte Natural 1kg", categoria: "Laticínios", preco_normal: 14.90, promocao: true, preco_promocional: 11.90, supermercado: "Pão de Açúcar" },
+  { id: 16, produto: "Feijão Carioca 1kg", categoria: "Mercearia", preco_normal: 9.90, promocao: false, preco_promocional: null, supermercado: "Supermercados BH" },
+  { id: 17, produto: "Tomate Kg", categoria: "Hortifruti", preco_normal: 8.90, promocao: true, preco_promocional: 6.90, supermercado: "Carrefour" },
+  { id: 18, produto: "Biscoito Recheado 140g", categoria: "Mercearia", preco_normal: 3.90, promocao: false, preco_promocional: null, supermercado: "Extra" },
+  { id: 19, produto: "Creme Dental 90g", categoria: "Higiene", preco_normal: 5.90, promocao: true, preco_promocional: 4.50, supermercado: "Atacadão" },
+  { id: 20, produto: "Carne Moída Especial Kg", categoria: "Carnes e Aves", preco_normal: 32.90, promocao: false, preco_promocional: null, supermercado: "Pão de Açúcar" },
+  { id: 21, produto: "Açúcar Cristal 1kg", categoria: "Mercearia", preco_normal: 4.90, promocao: true, preco_promocional: 3.90, supermercado: "Supermercados BH" },
+  { id: 22, produto: "Shampoo 400ml", categoria: "Higiene", preco_normal: 18.90, promocao: false, preco_promocional: null, supermercado: "Carrefour" },
+  { id: 23, produto: "Maionese 500g", categoria: "Mercearia", preco_normal: 9.90, promocao: true, preco_promocional: 7.90, supermercado: "Extra" },
+  { id: 24, produto: "Alface Unidade", categoria: "Hortifruti", preco_normal: 3.50, promocao: false, preco_promocional: null, supermercado: "Atacadão" },
+  { id: 25, produto: "Manteiga com Sal 200g", categoria: "Laticínios", preco_normal: 12.90, promocao: true, preco_promocional: 9.90, supermercado: "Pão de Açúcar" },
+  { id: 26, produto: "Farinha de Trigo 1kg", categoria: "Mercearia", preco_normal: 6.90, promocao: false, preco_promocional: null, supermercado: "Supermercados BH" },
+  { id: 27, produto: "Sabonete em Barra 90g", categoria: "Higiene", preco_normal: 2.90, promocao: true, preco_promocional: 1.90, supermercado: "Carrefour" },
+  { id: 28, produto: "Suco de Laranja 1L", categoria: "Bebidas", preco_normal: 9.90, promocao: false, preco_promocional: null, supermercado: "Extra" },
+  { id: 29, produto: "Ovos Branco 30un", categoria: "Laticínios", preco_normal: 24.90, promocao: true, preco_promocional: 19.90, supermercado: "Atacadão" },
+  { id: 30, produto: "Linguiça Toscana Kg", categoria: "Carnes e Aves", preco_normal: 28.90, promocao: false, preco_promocional: null, supermercado: "Pão de Açúcar" }
+];
+
 export const INITIAL_SUGGESTIONS = [
-  "Arroz 5kg",
-  "Feijão Carioca",
-  "Leite Integral",
-  "Café em Pó",
-  "Azeite de Oliva",
-  "Detergente",
-  "Banana Prata"
+  "Arroz",
+  "Feijão",
+  "Leite",
+  "Carnes",
+  "Limpeza",
+  "Promoções"
 ];

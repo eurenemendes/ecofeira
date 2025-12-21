@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Search, ShoppingCart, Store as StoreIcon, ChefHat, Trash2, History, X, Moon, Sun } from 'lucide-react';
-import { searchProductsWithGemini, suggestRecipe } from './services/geminiService';
+import { Search, ShoppingCart, Store as StoreIcon, Trash2, History, X, Moon, Sun, Filter, ArrowUpDown, Tag } from 'lucide-react';
+import { searchProductsWithGemini } from './services/geminiService';
 import { ProductOffer, CartItem, AppView } from './types';
-import { INITIAL_SUGGESTIONS } from './constants';
+import { INITIAL_SUGGESTIONS, MOCK_STORES, RAW_PRODUCTS } from './constants';
 import ProductCard from './components/ProductCard';
 import CartOptimizer from './components/CartOptimizer';
+
+type SortOption = 'price_asc' | 'price_desc' | 'name_asc';
 
 function App() {
   const [view, setView] = useState<AppView>(AppView.HOME);
@@ -13,11 +15,17 @@ function App() {
   const [searchResults, setSearchResults] = useState<ProductOffer[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    return localStorage.getItem('ecofeira_theme') === 'dark';
-  });
+  const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('ecofeira_theme') === 'dark');
 
-  // Efeito para aplicar o tema no body
+  // Filtros
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedStore, setSelectedStore] = useState<string | null>(null);
+  const [onlyPromos, setOnlyPromos] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>('price_asc');
+
+  const categories = useMemo(() => Array.from(new Set(RAW_PRODUCTS.map(p => p.categoria))), []);
+  const stores = useMemo(() => MOCK_STORES, []);
+
   useEffect(() => {
     if (isDarkMode) {
       document.body.setAttribute('data-theme', 'dark');
@@ -30,54 +38,29 @@ function App() {
 
   useEffect(() => {
     const savedHistory = localStorage.getItem('ecofeira_history');
-    if (savedHistory) {
-      try {
-        setSearchHistory(JSON.parse(savedHistory));
-      } catch (e) {
-        console.error("Erro ao carregar histórico", e);
-      }
-    }
-
+    if (savedHistory) try { setSearchHistory(JSON.parse(savedHistory)); } catch (e) {}
     const savedCart = localStorage.getItem('ecofeira_cart');
-    if (savedCart) {
-      try {
-        setCart(JSON.parse(savedCart));
-      } catch (e) {
-        console.error("Erro ao carregar carrinho", e);
-      }
-    }
+    if (savedCart) try { setCart(JSON.parse(savedCart)); } catch (e) {}
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem('ecofeira_history', JSON.stringify(searchHistory));
-  }, [searchHistory]);
-
-  useEffect(() => {
-    localStorage.setItem('ecofeira_cart', JSON.stringify(cart));
-  }, [cart]);
-
-  const addToHistory = (term: string) => {
-    setSearchHistory(prev => {
-      const filtered = prev.filter(item => item.toLowerCase() !== term.toLowerCase());
-      return [term, ...filtered].slice(0, 5);
-    });
-  };
-
-  const clearHistory = () => {
-    setSearchHistory([]);
-  };
+  useEffect(() => { localStorage.setItem('ecofeira_history', JSON.stringify(searchHistory)); }, [searchHistory]);
+  useEffect(() => { localStorage.setItem('ecofeira_cart', JSON.stringify(cart)); }, [cart]);
 
   const handleSearch = async (e?: React.FormEvent, queryOverride?: string) => {
     if (e) e.preventDefault();
     const term = queryOverride || query;
     if (!term.trim()) return;
-
     if (queryOverride) setQuery(term);
     
-    addToHistory(term);
+    setSearchHistory(prev => [term, ...prev.filter(i => i !== term)].slice(0, 5));
     setIsSearching(true);
     setView(AppView.SEARCH);
     
+    // Reset filtros ao buscar novo termo
+    setSelectedCategory(null);
+    setSelectedStore(null);
+    setOnlyPromos(false);
+
     try {
       const results = await searchProductsWithGemini(term);
       setSearchResults(results);
@@ -88,14 +71,32 @@ function App() {
     }
   };
 
+  const filteredAndSortedResults = useMemo(() => {
+    let results = [...searchResults];
+
+    if (selectedCategory) {
+      results = results.filter(p => p.category === selectedCategory);
+    }
+    if (selectedStore) {
+      results = results.filter(p => p.storeId === selectedStore);
+    }
+    if (onlyPromos) {
+      results = results.filter(p => p.isPromo);
+    }
+
+    results.sort((a, b) => {
+      if (sortBy === 'price_asc') return a.price - b.price;
+      if (sortBy === 'price_desc') return b.price - a.price;
+      return a.name.localeCompare(b.name);
+    });
+
+    return results;
+  }, [searchResults, selectedCategory, selectedStore, onlyPromos, sortBy]);
+
   const addToCart = useCallback((product: ProductOffer) => {
     setCart(prev => {
       const existing = prev.find(item => item.id === product.id);
-      if (existing) {
-        return prev.map(item => 
-          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
-        );
-      }
+      if (existing) return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
       return [...prev, { ...product, quantity: 1 }];
     });
   }, []);
@@ -125,49 +126,25 @@ function App() {
           )}
 
           <div className="flex gap-2">
-            <button 
-              className="btn btn-ghost" 
-              onClick={() => setIsDarkMode(!isDarkMode)}
-              aria-label="Alternar modo noturno"
-              style={{ padding: '10px' }}
-            >
+            <button className="btn btn-ghost" onClick={() => setIsDarkMode(!isDarkMode)} style={{ padding: '10px' }}>
               {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
             </button>
-            
             <button className="btn btn-ghost" onClick={() => setView(AppView.CART)} style={{ position: 'relative', padding: '10px' }}>
               <ShoppingCart size={20} />
-              {totalItems > 0 && (
-                <span style={{
-                  position: 'absolute',
-                  top: '-5px',
-                  right: '-5px',
-                  background: 'var(--primary)',
-                  color: 'white',
-                  borderRadius: '50%',
-                  width: '18px',
-                  height: '18px',
-                  fontSize: '0.65rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 'bold'
-                }}>
-                  {totalItems}
-                </span>
-              )}
+              {totalItems > 0 && <span className="badge-count">{totalItems}</span>}
             </button>
           </div>
         </div>
       </header>
 
-      <main className="container" style={{paddingTop: '40px', paddingBottom: '80px'}}>
+      <main className="container" style={{paddingTop: '30px', paddingBottom: '80px'}}>
         {view === AppView.HOME && (
           <div className="animate" style={{textAlign: 'center', maxWidth: '600px', margin: '60px auto'}}>
             <h1 style={{fontSize: '3rem', fontWeight: 800, marginBottom: '20px', lineHeight: 1.1}}>
-              Compare preços e <span style={{color: 'var(--primary)'}}>economize</span> agora.
+              Compare e <span style={{color: 'var(--primary)'}}>economize</span>.
             </h1>
             <p style={{color: 'var(--text-muted)', marginBottom: '40px', fontSize: '1.1rem'}}>
-              Acesse as ofertas de todos os supermercados locais em um único lugar.
+              Os melhores preços de {RAW_PRODUCTS.length} produtos em 5 supermercados locais.
             </p>
             
             <form onSubmit={handleSearch} style={{position: 'relative', marginBottom: '40px'}}>
@@ -187,38 +164,24 @@ function App() {
             {searchHistory.length > 0 && (
               <div style={{ marginBottom: '30px', textAlign: 'left' }}>
                 <div className="flex justify-between items-center" style={{ marginBottom: '12px' }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <History size={14} /> BUSCAS RECENTES
                   </span>
-                  <button 
-                    onClick={clearHistory}
-                    style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                  >
-                    <X size={12} /> Limpar
-                  </button>
+                  <button onClick={() => setSearchHistory([])} style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: '0.75rem', cursor: 'pointer' }}>Limpar</button>
                 </div>
                 <div className="flex gap-2" style={{flexWrap: 'wrap'}}>
                   {searchHistory.map(term => (
-                    <button 
-                      key={term} 
-                      onClick={() => handleSearch(undefined, term)} 
-                      className="btn btn-ghost" 
-                      style={{ fontSize: '0.8rem', padding: '6px 14px', borderRadius: '10px' }}
-                    >
-                      {term}
-                    </button>
+                    <button key={term} onClick={() => handleSearch(undefined, term)} className="btn btn-ghost" style={{ fontSize: '0.8rem', padding: '6px 14px', borderRadius: '10px' }}>{term}</button>
                   ))}
                 </div>
               </div>
             )}
 
             <div style={{ textAlign: 'left' }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '12px' }}>SUGESTÕES</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '12px' }}>SUGESTÕES</span>
               <div className="flex gap-2" style={{flexWrap: 'wrap'}}>
                 {INITIAL_SUGGESTIONS.map(s => (
-                  <button key={s} onClick={() => handleSearch(undefined, s)} className="btn btn-ghost" style={{fontSize: '0.8rem', padding: '6px 14px', borderRadius: '10px'}}>
-                    {s}
-                  </button>
+                  <button key={s} onClick={() => handleSearch(undefined, s)} className="btn btn-ghost" style={{fontSize: '0.8rem', padding: '6px 14px', borderRadius: '10px'}}>{s}</button>
                 ))}
               </div>
             </div>
@@ -227,25 +190,78 @@ function App() {
 
         {view === AppView.SEARCH && (
           <div className="animate">
-            <div className="flex items-center gap-4" style={{ marginBottom: '30px' }}>
-              <button className="btn btn-ghost" onClick={() => setView(AppView.HOME)} style={{ padding: '8px' }}>
-                <X size={20} />
+            <div className="flex items-center justify-between" style={{ marginBottom: '20px' }}>
+              <div className="flex items-center gap-2">
+                <button className="btn btn-ghost" onClick={() => setView(AppView.HOME)} style={{ padding: '8px' }}><X size={20} /></button>
+                <h2 style={{fontWeight: 800, fontSize: '1.25rem'}}>{filteredAndSortedResults.length} resultados para "{query}"</h2>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <ArrowUpDown size={16} color="var(--text-muted)" />
+                <select 
+                  value={sortBy} 
+                  onChange={(e) => setSortBy(e.target.value as SortOption)}
+                  style={{ background: 'var(--card-bg)', color: 'var(--text-main)', border: '1px solid var(--border)', padding: '6px 12px', borderRadius: '10px', fontSize: '0.85rem', outline: 'none' }}
+                >
+                  <option value="price_asc">Menor Preço</option>
+                  <option value="price_desc">Maior Preço</option>
+                  <option value="name_asc">Nome (A-Z)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Barra de Filtros */}
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '24px', overflowX: 'auto', paddingBottom: '8px', scrollbarWidth: 'none' }}>
+              <button 
+                onClick={() => setOnlyPromos(!onlyPromos)}
+                className={`btn ${onlyPromos ? 'btn-primary' : 'btn-ghost'}`}
+                style={{ fontSize: '0.75rem', padding: '6px 12px', whiteSpace: 'nowrap' }}
+              >
+                <Tag size={14} /> Em Promoção
               </button>
-              <h2 style={{fontWeight: 800, fontSize: '1.5rem'}}>Resultados para "{query}"</h2>
+              
+              <div style={{ width: '1px', background: 'var(--border)', margin: '0 5px' }}></div>
+              
+              {categories.map(cat => (
+                <button 
+                  key={cat}
+                  onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
+                  className={`btn ${selectedCategory === cat ? 'btn-primary' : 'btn-ghost'}`}
+                  style={{ fontSize: '0.75rem', padding: '6px 12px', whiteSpace: 'nowrap' }}
+                >
+                  {cat}
+                </button>
+              ))}
+
+              <div style={{ width: '1px', background: 'var(--border)', margin: '0 5px' }}></div>
+
+              {stores.map(store => (
+                <button 
+                  key={store.id}
+                  onClick={() => setSelectedStore(selectedStore === store.id ? null : store.id)}
+                  className={`btn ${selectedStore === store.id ? 'btn-primary' : 'btn-ghost'}`}
+                  style={{ fontSize: '0.75rem', padding: '6px 12px', whiteSpace: 'nowrap' }}
+                >
+                  {store.logo} {store.name}
+                </button>
+              ))}
             </div>
             
             {isSearching ? (
-              <div style={{ textAlign: 'center', padding: '40px' }}>
-                <div className="logo-icon animate" style={{ margin: '0 auto 20px', width: '50px', height: '50px' }}>
-                  <StoreIcon size={24} />
-                </div>
-                <p style={{color: 'var(--text-muted)', fontWeight: 600}}>Consultando preços nos mercados locais...</p>
+              <div style={{ textAlign: 'center', padding: '80px 0' }}>
+                <div className="logo-icon animate" style={{ margin: '0 auto 20px', width: '50px', height: '50px' }}><StoreIcon size={24} /></div>
+                <p style={{color: 'var(--text-muted)', fontWeight: 600}}>Atualizando ofertas...</p>
               </div>
-            ) : (
+            ) : filteredAndSortedResults.length > 0 ? (
               <div className="product-grid">
-                {searchResults.map(p => (
+                {filteredAndSortedResults.map(p => (
                   <ProductCard key={p.id} product={p} onAdd={addToCart} />
                 ))}
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '60px', border: '2px dashed var(--border)', borderRadius: '20px' }}>
+                <p style={{ color: 'var(--text-muted)' }}>Nenhum produto encontrado com os filtros aplicados.</p>
+                <button className="btn btn-ghost" style={{ marginTop: '16px' }} onClick={() => { setSelectedCategory(null); setSelectedStore(null); setOnlyPromos(false); }}>Limpar Filtros</button>
               </div>
             )}
           </div>
@@ -256,21 +272,16 @@ function App() {
             <div className="flex items-center justify-between" style={{ marginBottom: '30px' }}>
               <h2 style={{fontWeight: 800, fontSize: '2rem'}}>Minha Lista</h2>
               {cart.length > 0 && (
-                <button 
-                  className="btn btn-ghost" 
-                  style={{ color: 'var(--danger)', borderColor: 'rgba(239, 68, 68, 0.2)' }}
-                  onClick={() => { if(confirm('Limpar toda a lista?')) setCart([]) }}
-                >
-                  <Trash2 size={18} /> Limpar Tudo
+                <button className="btn btn-ghost" style={{ color: 'var(--danger)', borderColor: 'rgba(239, 68, 68, 0.2)' }} onClick={() => confirm('Limpar lista?') && setCart([])}>
+                  <Trash2 size={18} /> Limpar
                 </button>
               )}
             </div>
-            
             {cart.length === 0 ? (
               <div style={{textAlign: 'center', padding: '60px', border: '2px dashed var(--border)', borderRadius: '30px'}}>
                 <ShoppingCart size={48} style={{ color: 'var(--text-muted)', opacity: 0.3, marginBottom: '16px' }} />
-                <p style={{color: 'var(--text-muted)', marginBottom: '20px'}}>Sua lista de compras está vazia.</p>
-                <button className="btn btn-primary" onClick={() => setView(AppView.HOME)}>Explorar Ofertas</button>
+                <p style={{color: 'var(--text-muted)', marginBottom: '20px'}}>Sua lista está vazia.</p>
+                <button className="btn btn-primary" onClick={() => setView(AppView.HOME)}>Buscar Produtos</button>
               </div>
             ) : (
               <div style={{display: 'grid', gap: '24px'}}>
@@ -284,35 +295,36 @@ function App() {
                       <div style={{textAlign: 'right'}}>
                         <p style={{fontWeight: 800, color: 'var(--primary)', fontSize: '1.1rem'}}>R$ {(item.price * item.quantity).toFixed(2)}</p>
                         <div className="flex gap-2" style={{ marginTop: '4px' }}>
-                           <button onClick={() => {
-                             setCart(prev => prev.map(i => i.id === item.id ? {...i, quantity: Math.max(1, i.quantity - 1)} : i))
-                           }} style={{ background: 'var(--bg)', color: 'var(--text-main)', border: '1px solid var(--border)', borderRadius: '4px', padding: '2px 8px', cursor: 'pointer' }}>-</button>
-                           <button onClick={() => {
-                             setCart(prev => prev.map(i => i.id === item.id ? {...i, quantity: i.quantity + 1} : i))
-                           }} style={{ background: 'var(--bg)', color: 'var(--text-main)', border: '1px solid var(--border)', borderRadius: '4px', padding: '2px 8px', cursor: 'pointer' }}>+</button>
-                           <button onClick={() => {
-                             setCart(prev => prev.filter(i => i.id !== item.id))
-                           }} style={{ color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer', marginLeft: '8px' }}>
-                            <Trash2 size={14} />
-                           </button>
+                           <button onClick={() => setCart(prev => prev.map(i => i.id === item.id ? {...i, quantity: Math.max(1, i.quantity - 1)} : i))} style={{ background: 'var(--bg)', color: 'var(--text-main)', border: '1px solid var(--border)', borderRadius: '4px', padding: '2px 8px', cursor: 'pointer' }}>-</button>
+                           <button onClick={() => setCart(prev => prev.map(i => i.id === item.id ? {...i, quantity: i.quantity + 1} : i))} style={{ background: 'var(--bg)', color: 'var(--text-main)', border: '1px solid var(--border)', borderRadius: '4px', padding: '2px 8px', cursor: 'pointer' }}>+</button>
+                           <button onClick={() => setCart(prev => prev.filter(i => i.id !== item.id))} style={{ color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer', marginLeft: '8px' }}><Trash2 size={14} /></button>
                         </div>
                       </div>
                     </div>
                   ))}
                   <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '2px solid var(--border)', textAlign: 'right' }}>
-                    <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>TOTAL DA LISTA</p>
-                    <p style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700 }}>VALOR TOTAL ESTIMADO</p>
+                    <p style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-main)' }}>
                       R$ {cart.reduce((acc, item) => acc + (item.price * item.quantity), 0).toFixed(2)}
                     </p>
                   </div>
                 </div>
-                
                 <CartOptimizer cart={cart} />
               </div>
             )}
           </div>
         )}
       </main>
+
+      <style>{`
+        .badge-count {
+          position: absolute; top: -5px; right: -5px; background: var(--primary); color: white;
+          border-radius: 50%; width: 18px; height: 18px; font-size: 0.65rem;
+          display: flex; align-items: center; justify-content: center; fontWeight: bold;
+        }
+        ::-webkit-scrollbar { height: 4px; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+      `}</style>
     </div>
   );
 }

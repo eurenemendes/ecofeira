@@ -1,77 +1,39 @@
-import { GoogleGenAI, Type } from "@google/genai";
 import { ProductOffer } from "../types";
-import { MOCK_STORES, STORE_PRICING_FACTORS } from "../constants";
-
-const productSchema = {
-  type: Type.ARRAY,
-  items: {
-    type: Type.OBJECT,
-    properties: {
-      name: { type: Type.STRING },
-      category: { type: Type.STRING },
-      basePrice: { type: Type.NUMBER },
-      unit: { type: Type.STRING },
-    },
-    required: ["name", "category", "basePrice", "unit"],
-  },
-};
+import { MOCK_STORES, RAW_PRODUCTS } from "../constants";
 
 export const searchProductsWithGemini = async (query: string): Promise<ProductOffer[]> => {
-  try {
-    // Create instance inside the call to ensure process.env.API_KEY is available
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  // Simula um pequeno delay de rede para manter o feeling do app
+  await new Promise(resolve => setTimeout(resolve, 600));
+
+  const lowerQuery = query.toLowerCase();
+  
+  const filtered = RAW_PRODUCTS.filter(p => 
+    p.produto.toLowerCase().includes(lowerQuery) || 
+    p.categoria.toLowerCase().includes(lowerQuery) ||
+    (lowerQuery === "promoções" && p.promocao)
+  );
+
+  return filtered.map(p => {
+    const store = MOCK_STORES.find(s => s.name === p.supermercado) || MOCK_STORES[0];
     
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: `Gere uma lista de 6 produtos de supermercado para a busca: "${query}". Foco no mercado brasileiro.`,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: productSchema,
-      },
-    });
-
-    const productsData = JSON.parse(response.text || "[]");
-    const offers: ProductOffer[] = [];
-
-    productsData.forEach((product: any, index: number) => {
-      MOCK_STORES.forEach((store) => {
-        const storeFactor = STORE_PRICING_FACTORS[store.id] || 1.0;
-        const variance = (Math.random() * 0.10) - 0.05;
-        const finalPrice = product.basePrice * storeFactor * (1 + variance);
-
-        offers.push({
-          id: `off_${index}_${store.id}`,
-          baseProductId: `prod_${index}`,
-          name: String(product.name),
-          category: String(product.category),
-          storeId: store.id,
-          storeName: store.name,
-          storeColor: store.color,
-          price: Number(finalPrice.toFixed(2)),
-          unit: String(product.unit),
-          imageUrl: "",
-          isPromo: variance < -0.03,
-        });
-      });
-    });
-
-    return offers;
-  } catch (error) {
-    console.error("Gemini Error:", error);
-    return [];
-  }
+    return {
+      id: `prod_${p.id}`,
+      baseProductId: String(p.id),
+      name: p.produto,
+      category: p.categoria,
+      storeId: store.id,
+      storeName: store.name,
+      storeColor: store.color,
+      price: p.promocao ? (p.preco_promocional || p.preco_normal) : p.preco_normal,
+      originalPrice: p.preco_normal,
+      unit: p.produto.split(' ').slice(-1)[0], // Extrai a unidade do final da string
+      imageUrl: "",
+      isPromo: p.promocao
+    };
+  });
 };
 
 export const suggestRecipe = async (items: string[]): Promise<string> => {
-  if (items.length < 2) return "";
-  try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: `Sugira uma receita rápida e curta usando apenas: ${items.join(", ")}.`,
-    });
-    return String(response.text || "");
-  } catch (e) {
-    return "";
-  }
+  // Mantemos como fallback, mas o foco agora são os produtos manuais
+  return "Combine seus itens para uma refeição deliciosa e econômica!";
 };
