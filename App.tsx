@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Search, ShoppingCart, Store as StoreIcon, Trash2, History, X, Moon, Sun, Filter, ArrowUpDown, Tag } from 'lucide-react';
+import { Search, ShoppingCart, Store as StoreIcon, Trash2, History, X, Moon, Sun, Filter, ArrowUpDown, Tag, ArrowUp } from 'lucide-react';
 import { searchProductsWithGemini } from './services/geminiService';
 import { ProductOffer, CartItem, AppView } from './types';
 import { INITIAL_SUGGESTIONS, MOCK_STORES, RAW_PRODUCTS } from './constants';
@@ -16,6 +16,7 @@ function App() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('ecofeira_theme') === 'dark');
+  const [showBackToTop, setShowBackToTop] = useState(false);
 
   // Filtros
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -35,6 +36,14 @@ function App() {
       localStorage.setItem('ecofeira_theme', 'light');
     }
   }, [isDarkMode]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowBackToTop(window.scrollY > 400);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
     const savedHistory = localStorage.getItem('ecofeira_history');
@@ -103,11 +112,15 @@ function App() {
 
   const totalItems = useMemo(() => cart.reduce((acc, item) => acc + item.quantity, 0), [cart]);
 
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div className="app-wrapper">
       <header>
         <div className="container flex justify-between items-center">
-          <div className="logo" onClick={() => setView(AppView.HOME)}>
+          <div className="logo" onClick={() => { setView(AppView.HOME); window.scrollTo(0,0); }}>
             <div className="logo-icon"><StoreIcon size={20} /></div>
             <span>EcoFeira</span>
           </div>
@@ -316,6 +329,15 @@ function App() {
         )}
       </main>
 
+      {/* Botão Voltar ao Topo */}
+      <button 
+        onClick={scrollToTop}
+        className={`btn-back-to-top ${showBackToTop ? 'show' : ''}`}
+        aria-label="Voltar ao topo"
+      >
+        <ArrowUp size={24} />
+      </button>
+
       <style>{`
         .badge-count {
           position: absolute; top: -5px; right: -5px; background: var(--primary); color: white;
@@ -324,6 +346,43 @@ function App() {
         }
         ::-webkit-scrollbar { height: 4px; }
         ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+        
+        .btn-back-to-top {
+          position: fixed;
+          bottom: 30px;
+          right: 30px;
+          width: 50px;
+          height: 50px;
+          border-radius: 50%;
+          background: var(--primary);
+          color: white;
+          border: none;
+          box-shadow: var(--shadow-lg);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          opacity: 0;
+          visibility: hidden;
+          transform: translateY(20px);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .btn-back-to-top.show {
+          opacity: 1;
+          visibility: visible;
+          transform: translateY(0);
+        }
+        
+        .btn-back-to-top:hover {
+          background: var(--primary-hover);
+          transform: translateY(-5px) scale(1.05);
+        }
+
+        .btn-back-to-top:active {
+          transform: translateY(0) scale(0.95);
+        }
       `}</style>
     </div>
   );
