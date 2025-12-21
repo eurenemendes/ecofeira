@@ -19,6 +19,8 @@ export interface ProductOffer {
   id: string;
   baseProductId: string;
   name: string;
+  // Added category property to fix TypeScript errors when accessing product.category
+  category: string;
   storeId: string;
   storeName: string;
   storeColor: string;
