@@ -34,6 +34,7 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart }) => {
           foundCount++;
         } else {
           // Se não encontrou, faz uma estimativa inteligente baseada no fator do mercado
+          // Baseamos no preço que o usuário adicionou originalmente
           const sourceStoreFactor = STORE_PRICING_FACTORS[item.storeId] || 1.0;
           const estimatedBasePrice = item.price / sourceStoreFactor;
           finalPrice = estimatedBasePrice * targetStoreFactor;
@@ -52,7 +53,7 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart }) => {
         storeId: store.id,
         storeName: store.name,
         totalPrice: total,
-        missingItems: cart.length - foundCount, // Itens que não possuem preço real neste mercado
+        missingItems: cart.length - foundCount,
         items: storeItems
       };
     }).sort((a, b) => a.totalPrice - b.totalPrice);
@@ -65,132 +66,177 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart }) => {
   const totalCartItems = cart.length;
 
   return (
-    <div style={{ display: 'grid', gap: '20px' }}>
-      {/* Card de Destaque - Melhor Opção */}
+    <div style={{ display: 'grid', gap: '24px', width: '100%' }}>
+      {/* Card de Destaque - Banner de Melhor Opção */}
       <div style={{
-        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-        borderRadius: '24px',
-        padding: '24px',
+        background: 'linear-gradient(135deg, #6fd4b2 0%, #4cae8d 100%)',
+        borderRadius: '32px',
+        padding: '32px',
         color: 'white',
-        boxShadow: 'var(--shadow-lg)',
+        boxShadow: '0 20px 40px -10px rgba(16, 185, 129, 0.25)',
         position: 'relative',
         overflow: 'hidden'
       }}>
-        {/* Decoração de fundo */}
-        <div style={{ position: 'absolute', right: '-20px', top: '-20px', opacity: 0.1 }}>
-          <TrendingDown size={150} />
+        {/* Ícone Decorativo de Fundo */}
+        <div style={{ position: 'absolute', right: '10px', top: '10px', opacity: 0.1, pointerEvents: 'none' }}>
+          <TrendingDown size={140} strokeWidth={1.5} />
         </div>
 
-        <div className="flex items-center gap-2" style={{ marginBottom: '12px', opacity: 0.9 }}>
-          <TrendingDown size={22} />
-          <h3 style={{ fontWeight: 700, fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        <div className="flex items-center gap-2" style={{ marginBottom: '24px', opacity: 0.9 }}>
+          <TrendingDown size={20} />
+          <h3 style={{ fontWeight: 800, fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
             Melhor Opção de Compra
           </h3>
         </div>
         
-        <div className="flex justify-between items-end">
-          <div>
-            <p style={{ fontSize: '0.85rem', fontWeight: 500, opacity: 0.8, marginBottom: '4px' }}>Economize comprando no:</p>
-            <div style={{ fontSize: '2rem', fontWeight: 800, lineHeight: 1 }}>
+        <div className="flex justify-between items-start" style={{ position: 'relative', zIndex: 2 }}>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: '0.9rem', fontWeight: 500, opacity: 0.85, marginBottom: '4px' }}>Economize comprando no:</p>
+            <div style={{ fontSize: '2.8rem', fontWeight: 900, lineHeight: 1, marginBottom: '16px' }}>
                {bestOption.storeName}
             </div>
-            <div className="flex items-center gap-1" style={{ marginTop: '12px', fontSize: '0.8rem', background: 'rgba(255,255,255,0.2)', padding: '4px 10px', borderRadius: '20px', width: 'fit-content' }}>
+            
+            <div style={{ 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: '8px', 
+                fontSize: '0.75rem', 
+                background: 'rgba(255, 255, 255, 0.15)', 
+                padding: '6px 14px', 
+                borderRadius: '100px',
+                fontWeight: 600,
+                backdropFilter: 'blur(4px)'
+            }}>
                 <CheckCircle2 size={14} /> 
                 {totalCartItems - bestOption.missingItems} de {totalCartItems} itens confirmados no banco
             </div>
           </div>
+          
           <div style={{ textAlign: 'right' }}>
-            <p style={{ fontSize: '0.85rem', opacity: 0.8 }}>Total Estimado</p>
-            <p style={{ fontSize: '2.2rem', fontWeight: 800 }}>R$ {bestOption.totalPrice.toFixed(2).replace('.', ',')}</p>
+            <p style={{ fontSize: '0.9rem', opacity: 0.85, marginBottom: '2px' }}>Total Estimado</p>
+            <div style={{ fontSize: '3rem', fontWeight: 900, lineHeight: 1 }}>
+              R$ {bestOption.totalPrice.toFixed(2).replace('.', ',')}
+            </div>
           </div>
         </div>
         
         {optimizedData.length > 1 && (
-             <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.2)', fontSize: '0.9rem' }}>
+             <div style={{ 
+               marginTop: '32px', 
+               paddingTop: '20px', 
+               borderTop: '1px solid rgba(255,255,255,0.2)', 
+               fontSize: '0.95rem',
+               fontWeight: 500
+             }}>
                 Você economiza <span style={{ fontWeight: 800, color: '#fcd34d' }}>R$ {(worstOption.totalPrice - bestOption.totalPrice).toFixed(2).replace('.', ',')}</span> nesta escolha!
              </div>
         )}
       </div>
 
-      {/* Lista Comparativa */}
-      <div style={{ display: 'grid', gap: '12px' }}>
-        <h4 style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '1.1rem', marginLeft: '4px', marginBottom: '4px' }}>Comparativo por Mercado</h4>
+      {/* Seção Lista Comparativa */}
+      <div style={{ display: 'grid', gap: '16px' }}>
+        <h4 style={{ 
+          fontWeight: 800, 
+          color: 'var(--text-muted)', 
+          fontSize: '1.1rem', 
+          marginLeft: '4px',
+          marginBottom: '4px' 
+        }}>
+          Comparativo por Mercado
+        </h4>
         
-        {optimizedData.map((opt, idx) => (
-          <div key={opt.storeId} style={{ 
-            position: 'relative', 
-            padding: '18px', 
-            borderRadius: '20px', 
-            border: idx === 0 ? '2px solid var(--primary)' : '1px solid var(--border)',
-            background: idx === 0 ? 'var(--primary-light)' : 'var(--card-bg)',
-            boxShadow: idx === 0 ? 'var(--shadow-md)' : 'var(--shadow-sm)',
-            transition: 'transform 0.2s'
-          }}>
-            {idx === 0 && (
-                <div style={{
-                  position: 'absolute',
-                  top: '-10px',
-                  left: '20px',
-                  background: 'var(--primary)',
-                  color: 'white',
-                  fontSize: '0.65rem',
-                  padding: '4px 12px',
-                  borderRadius: '8px',
-                  fontWeight: 800,
-                  textTransform: 'uppercase',
-                  boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)'
-                }}>
-                    Mais Econômico
-                </div>
-            )}
+        {optimizedData.map((opt, idx) => {
+          const isBest = idx === 0;
+          const storeInfo = MOCK_STORES.find(s => s.id === opt.storeId);
+          
+          return (
+            <div key={opt.storeId} style={{ 
+              position: 'relative', 
+              padding: '24px', 
+              borderRadius: '24px', 
+              border: isBest ? '2px solid #6fd4b2' : '1px solid var(--border)',
+              background: isBest ? '#f0faf6' : 'var(--card-bg)',
+              boxShadow: isBest ? '0 10px 20px -5px rgba(111, 212, 178, 0.15)' : 'var(--shadow-sm)',
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              {isBest && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '-12px',
+                    left: '20px',
+                    background: '#4cae8d',
+                    color: 'white',
+                    fontSize: '0.65rem',
+                    padding: '4px 12px',
+                    borderRadius: '8px',
+                    fontWeight: 900,
+                    textTransform: 'uppercase',
+                    boxShadow: '0 4px 10px rgba(76, 174, 141, 0.3)',
+                    zIndex: 2
+                  }}>
+                      Mais Econômico
+                  </div>
+              )}
 
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <div style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: '14px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '1.4rem',
-                      background: 'var(--bg)',
-                      border: '1px solid var(--border)'
-                    }}>
-                        {MOCK_STORES.find(s => s.id === opt.storeId)?.logo}
-                    </div>
-                    <div>
-                        <h5 style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-main)' }}>{opt.storeName}</h5>
-                        <div className="flex items-center gap-3" style={{ marginTop: '4px' }}>
-                            <div className="flex items-center gap-1" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                <MapPin size={12} />
-                                {MOCK_STORES.find(s => s.id === opt.storeId)?.distance}
-                            </div>
-                            <div className="flex items-center gap-1" style={{ 
-                                fontSize: '0.75rem', 
-                                color: opt.missingItems === 0 ? 'var(--primary)' : 'var(--text-muted)',
-                                fontWeight: opt.missingItems === 0 ? 700 : 500
-                            }}>
-                                {opt.missingItems === 0 ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
-                                {totalCartItems - opt.missingItems}/{totalCartItems} no banco
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontWeight: 800, fontSize: '1.2rem', color: idx === 0 ? 'var(--primary)' : 'var(--text-main)' }}>
-                        R$ {opt.totalPrice.toFixed(2).replace('.', ',')}
-                    </div>
-                    {idx !== 0 && (
-                        <div style={{ fontSize: '0.75rem', color: 'var(--danger)', fontWeight: 700, marginTop: '2px' }}>
-                            + R$ {(opt.totalPrice - bestOption.totalPrice).toFixed(2).replace('.', ',')}
-                        </div>
-                    )}
-                </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <div style={{
+                    width: '56px',
+                    height: '56px',
+                    borderRadius: '16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.8rem',
+                    background: 'var(--card-bg)',
+                    border: '1px solid var(--border)',
+                    boxShadow: 'var(--shadow-sm)'
+                  }}>
+                      {storeInfo?.logo}
+                  </div>
+                  <div>
+                      <h5 style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--text-main)', marginBottom: '2px' }}>
+                        {opt.storeName}
+                      </h5>
+                      <div className="flex items-center gap-3">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                              <MapPin size={12} />
+                              {storeInfo?.distance}
+                          </div>
+                          <div style={{ 
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontSize: '0.8rem', 
+                              color: opt.missingItems === 0 ? 'var(--primary)' : 'var(--text-muted)',
+                              fontWeight: opt.missingItems === 0 ? 800 : 500
+                          }}>
+                              {opt.missingItems === 0 ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+                              {totalCartItems - opt.missingItems}/{totalCartItems} no banco
+                          </div>
+                      </div>
+                  </div>
+              </div>
+              
+              <div style={{ textAlign: 'right' }}>
+                  <div style={{ 
+                    fontWeight: 900, 
+                    fontSize: '1.4rem', 
+                    color: isBest ? '#4cae8d' : 'var(--text-main)' 
+                  }}>
+                      R$ {opt.totalPrice.toFixed(2).replace('.', ',')}
+                  </div>
+                  {!isBest && (
+                      <div style={{ fontSize: '0.75rem', color: 'var(--danger)', fontWeight: 800, marginTop: '2px' }}>
+                          + R$ {(opt.totalPrice - bestOption.totalPrice).toFixed(2).replace('.', ',')}
+                      </div>
+                  )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

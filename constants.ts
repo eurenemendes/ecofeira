@@ -56,6 +56,7 @@ export const RAW_PRODUCTS = [
   { id: 6, produto: "Sabão em Pó 2kg", categoria: "Limpeza", preco_normal: 22.90, promocao: true, preco_promocional: 18.90, supermercado: "Supermercados BH" },
   { id: 7, produto: "Papel Higiênico 16 rolos", categoria: "Higiene", preco_normal: 29.90, promocao: false, preco_promocional: null, supermercado: "Carrefour" },
   { id: 8, produto: "Refrigerante Cola 2L", categoria: "Bebidas", preco_normal: 8.90, promocao: true, preco_promocional: 6.90, supermercado: "Extra" },
+  { id: 9, produto: "Açúcar Cristal 1kg", categoria: "Mercearia", preco_normal: 5.60, promocao: true, preco_promocional: 3.90, supermercado: "Borges" },
   { id: 10, produto: "Queijo Mussarela Fatiado 300g", categoria: "Laticínios", preco_normal: 16.90, promocao: true, preco_promocional: 13.90, supermercado: "Pão de Açúcar" },
   { id: 11, produto: "Macarrão Espaguete 500g", categoria: "Mercearia", preco_normal: 4.90, promocao: true, preco_promocional: 3.50, supermercado: "Supermercados BH" },
   { id: 12, produto: "Detergente Líquido 500ml", categoria: "Limpeza", preco_normal: 3.90, promocao: false, preco_promocional: null, supermercado: "Carrefour" },
