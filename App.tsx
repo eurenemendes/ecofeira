@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Search, ShoppingCart, Store as StoreIcon, ChefHat, Trash2, History, X } from 'lucide-react';
+import { Search, ShoppingCart, Store as StoreIcon, ChefHat, Trash2, History, X, Moon, Sun } from 'lucide-react';
 import { searchProductsWithGemini, suggestRecipe } from './services/geminiService';
 import { ProductOffer, CartItem, AppView } from './types';
 import { INITIAL_SUGGESTIONS } from './constants';
@@ -13,8 +13,21 @@ function App() {
   const [searchResults, setSearchResults] = useState<ProductOffer[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return localStorage.getItem('ecofeira_theme') === 'dark';
+  });
 
-  // Carregar histórico e carrinho do localStorage ao iniciar
+  // Efeito para aplicar o tema no body
+  useEffect(() => {
+    if (isDarkMode) {
+      document.body.setAttribute('data-theme', 'dark');
+      localStorage.setItem('ecofeira_theme', 'dark');
+    } else {
+      document.body.removeAttribute('data-theme');
+      localStorage.setItem('ecofeira_theme', 'light');
+    }
+  }, [isDarkMode]);
+
   useEffect(() => {
     const savedHistory = localStorage.getItem('ecofeira_history');
     if (savedHistory) {
@@ -35,12 +48,10 @@ function App() {
     }
   }, []);
 
-  // Salvar histórico sempre que mudar
   useEffect(() => {
     localStorage.setItem('ecofeira_history', JSON.stringify(searchHistory));
   }, [searchHistory]);
 
-  // Salvar carrinho sempre que mudar
   useEffect(() => {
     localStorage.setItem('ecofeira_cart', JSON.stringify(cart));
   }, [cart]);
@@ -48,7 +59,7 @@ function App() {
   const addToHistory = (term: string) => {
     setSearchHistory(prev => {
       const filtered = prev.filter(item => item.toLowerCase() !== term.toLowerCase());
-      return [term, ...filtered].slice(0, 5); // Mantém as 5 mais recentes
+      return [term, ...filtered].slice(0, 5);
     });
   };
 
@@ -113,28 +124,39 @@ function App() {
             </form>
           )}
 
-          <button className="btn btn-ghost" onClick={() => setView(AppView.CART)} style={{ position: 'relative' }}>
-            <ShoppingCart size={20} />
-            {totalItems > 0 && (
-              <span style={{
-                position: 'absolute',
-                top: '-5px',
-                right: '-5px',
-                background: 'var(--primary)',
-                color: 'white',
-                borderRadius: '50%',
-                width: '18px',
-                height: '18px',
-                fontSize: '0.65rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 'bold'
-              }}>
-                {totalItems}
-              </span>
-            )}
-          </button>
+          <div className="flex gap-2">
+            <button 
+              className="btn btn-ghost" 
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              aria-label="Alternar modo noturno"
+              style={{ padding: '10px' }}
+            >
+              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+            
+            <button className="btn btn-ghost" onClick={() => setView(AppView.CART)} style={{ position: 'relative', padding: '10px' }}>
+              <ShoppingCart size={20} />
+              {totalItems > 0 && (
+                <span style={{
+                  position: 'absolute',
+                  top: '-5px',
+                  right: '-5px',
+                  background: 'var(--primary)',
+                  color: 'white',
+                  borderRadius: '50%',
+                  width: '18px',
+                  height: '18px',
+                  fontSize: '0.65rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 'bold'
+                }}>
+                  {totalItems}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -153,7 +175,7 @@ function App() {
                <input 
                 type="text" 
                 placeholder="O que você precisa hoje?" 
-                style={{width: '100%', padding: '18px 20px 18px 55px', borderRadius: '20px', border: '2px solid var(--border)', fontSize: '1.1rem', outline: 'none', boxShadow: 'var(--shadow-md)'}}
+                style={{width: '100%', padding: '18px 20px 18px 55px', borderRadius: '20px', border: '2px solid var(--border)', background: 'var(--card-bg)', color: 'var(--text-main)', fontSize: '1.1rem', outline: 'none', boxShadow: 'var(--shadow-md)'}}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                />
@@ -162,7 +184,6 @@ function App() {
                </button>
             </form>
 
-            {/* Seção de Histórico */}
             {searchHistory.length > 0 && (
               <div style={{ marginBottom: '30px', textAlign: 'left' }}>
                 <div className="flex justify-between items-center" style={{ marginBottom: '12px' }}>
@@ -247,15 +268,15 @@ function App() {
             
             {cart.length === 0 ? (
               <div style={{textAlign: 'center', padding: '60px', border: '2px dashed var(--border)', borderRadius: '30px'}}>
-                <ShoppingCart size={48} style={{ color: 'var(--border)', marginBottom: '16px' }} />
+                <ShoppingCart size={48} style={{ color: 'var(--text-muted)', opacity: 0.3, marginBottom: '16px' }} />
                 <p style={{color: 'var(--text-muted)', marginBottom: '20px'}}>Sua lista de compras está vazia.</p>
                 <button className="btn btn-primary" onClick={() => setView(AppView.HOME)}>Explorar Ofertas</button>
               </div>
             ) : (
               <div style={{display: 'grid', gap: '24px'}}>
-                <div style={{background: 'white', borderRadius: '24px', padding: '24px', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)'}}>
+                <div style={{background: 'var(--card-bg)', borderRadius: '24px', padding: '24px', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)'}}>
                   {cart.map(item => (
-                    <div key={item.id} className="flex justify-between items-center" style={{padding: '15px 0', borderBottom: '1px solid var(--bg)'}}>
+                    <div key={item.id} className="flex justify-between items-center" style={{padding: '15px 0', borderBottom: '1px solid var(--border)'}}>
                       <div>
                         <h4 style={{fontWeight: 700}}>{item.name}</h4>
                         <p style={{fontSize: '0.8rem', color: 'var(--text-muted)'}}>{item.storeName} • {item.quantity} un.</p>
@@ -265,10 +286,10 @@ function App() {
                         <div className="flex gap-2" style={{ marginTop: '4px' }}>
                            <button onClick={() => {
                              setCart(prev => prev.map(i => i.id === item.id ? {...i, quantity: Math.max(1, i.quantity - 1)} : i))
-                           }} style={{ background: 'var(--bg)', border: 'none', borderRadius: '4px', padding: '2px 6px', cursor: 'pointer' }}>-</button>
+                           }} style={{ background: 'var(--bg)', color: 'var(--text-main)', border: '1px solid var(--border)', borderRadius: '4px', padding: '2px 8px', cursor: 'pointer' }}>-</button>
                            <button onClick={() => {
                              setCart(prev => prev.map(i => i.id === item.id ? {...i, quantity: i.quantity + 1} : i))
-                           }} style={{ background: 'var(--bg)', border: 'none', borderRadius: '4px', padding: '2px 6px', cursor: 'pointer' }}>+</button>
+                           }} style={{ background: 'var(--bg)', color: 'var(--text-main)', border: '1px solid var(--border)', borderRadius: '4px', padding: '2px 8px', cursor: 'pointer' }}>+</button>
                            <button onClick={() => {
                              setCart(prev => prev.filter(i => i.id !== item.id))
                            }} style={{ color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer', marginLeft: '8px' }}>
@@ -278,7 +299,7 @@ function App() {
                       </div>
                     </div>
                   ))}
-                  <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '2px solid var(--bg)', textAlign: 'right' }}>
+                  <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '2px solid var(--border)', textAlign: 'right' }}>
                     <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>TOTAL DA LISTA</p>
                     <p style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-main)' }}>
                       R$ {cart.reduce((acc, item) => acc + (item.price * item.quantity), 0).toFixed(2)}

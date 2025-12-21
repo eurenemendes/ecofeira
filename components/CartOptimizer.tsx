@@ -17,18 +17,11 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart }) => {
       let missingCount = 0;
       const storeItems: CartItem[] = [];
 
-      // Logic to estimate the cart total at this specific store
       const targetStoreFactor = STORE_PRICING_FACTORS[store.id] || 1.0;
 
       cart.forEach(item => {
-         // 1. Normalize the price to find the approximate "Base Price" of the product.
-         // We divide by the factor of the store where the item was originally found.
          const sourceStoreFactor = STORE_PRICING_FACTORS[item.storeId] || 1.0;
          const estimatedBasePrice = item.price / sourceStoreFactor;
-
-         // 2. Project this base price to the target store using its factor.
-         // This gives us a realistic estimate of what this item would cost at this store,
-         // maintaining the integrity of the "Expensive" vs "Cheap" store model.
          const estimatedPrice = estimatedBasePrice * targetStoreFactor;
 
          total += estimatedPrice * item.quantity;
@@ -51,58 +44,93 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart }) => {
   const worstOption = optimizedData[optimizedData.length - 1];
 
   return (
-    <div className="space-y-4">
-      <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl p-6 text-white shadow-lg">
-        <div className="flex items-center gap-2 mb-2 opacity-90">
+    <div style={{ display: 'grid', gap: '16px' }}>
+      <div style={{
+        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+        borderRadius: '24px',
+        padding: '24px',
+        color: 'white',
+        boxShadow: 'var(--shadow-lg)'
+      }}>
+        <div className="flex items-center gap-2" style={{ marginBottom: '8px', opacity: 0.9 }}>
           <TrendingDown size={24} />
-          <h3 className="font-semibold text-lg">Melhor Opção de Compra</h3>
+          <h3 style={{ fontWeight: 700, fontSize: '1.1rem' }}>Melhor Opção de Compra</h3>
         </div>
         <div className="flex justify-between items-end">
           <div>
-            <p className="text-sm font-medium opacity-80 mb-1">Comprando tudo no:</p>
-            <div className="text-2xl font-bold flex items-center gap-2">
+            <p style={{ fontSize: '0.8rem', fontWeight: 500, opacity: 0.8, marginBottom: '4px' }}>Comprando tudo no:</p>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>
                {bestOption.storeName}
             </div>
           </div>
-          <div className="text-right">
-            <p className="text-sm opacity-80">Total Estimado</p>
-            <p className="text-3xl font-extrabold">R$ {bestOption.totalPrice.toFixed(2)}</p>
+          <div style={{ textAlign: 'right' }}>
+            <p style={{ fontSize: '0.8rem', opacity: 0.8 }}>Total Estimado</p>
+            <p style={{ fontSize: '2rem', fontWeight: 800 }}>R$ {bestOption.totalPrice.toFixed(2)}</p>
           </div>
         </div>
         
         {optimizedData.length > 1 && (
-             <div className="mt-4 pt-4 border-t border-white/20 text-sm">
-                <p>Economia de <span className="font-bold text-yellow-300">R$ {(worstOption.totalPrice - bestOption.totalPrice).toFixed(2)}</span> comparado ao mais caro.</p>
+             <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.2)', fontSize: '0.85rem' }}>
+                <p>Economia de <span style={{ fontWeight: 800, color: '#fcd34d' }}>R$ {(worstOption.totalPrice - bestOption.totalPrice).toFixed(2)}</span> comparado ao mais caro.</p>
              </div>
         )}
       </div>
 
-      <div className="space-y-3">
-        <h4 className="font-medium text-gray-700 ml-1">Comparativo por Mercado</h4>
+      <div style={{ display: 'grid', gap: '12px' }}>
+        <h4 style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '1rem', marginLeft: '4px' }}>Comparativo por Mercado</h4>
         {optimizedData.map((opt, idx) => (
-          <div key={opt.storeId} className={`relative p-4 rounded-xl border-2 transition-all ${idx === 0 ? 'border-emerald-500 bg-emerald-50' : 'border-transparent bg-white shadow-sm'}`}>
+          <div key={opt.storeId} style={{ 
+            position: 'relative', 
+            padding: '16px', 
+            borderRadius: '16px', 
+            border: idx === 0 ? '2px solid var(--primary)' : '1px solid var(--border)',
+            background: idx === 0 ? 'var(--primary-light)' : 'var(--card-bg)',
+            color: idx === 0 && document.body.getAttribute('data-theme') !== 'dark' ? '#065f46' : 'inherit',
+            boxShadow: 'var(--shadow-sm)'
+          }}>
             {idx === 0 && (
-                <div className="absolute -top-3 left-4 bg-emerald-500 text-white text-xs px-2 py-1 rounded-full font-bold uppercase tracking-wide">
+                <div style={{
+                  position: 'absolute',
+                  top: '-10px',
+                  left: '16px',
+                  background: 'var(--primary)',
+                  color: 'white',
+                  fontSize: '0.65rem',
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                  fontWeight: 800,
+                  textTransform: 'uppercase'
+                }}>
                     Mais Barato
                 </div>
             )}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg shadow-sm ${idx === 0 ? 'bg-white' : 'bg-gray-100'}`}>
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1.2rem',
+                      background: 'var(--bg)',
+                      boxShadow: 'var(--shadow-sm)'
+                    }}>
                         {MOCK_STORES.find(s => s.id === opt.storeId)?.logo}
                     </div>
                     <div>
-                        <h5 className="font-semibold text-gray-800">{opt.storeName}</h5>
-                        <div className="flex items-center gap-1 text-xs text-gray-500">
+                        <h5 style={{ fontWeight: 700 }}>{opt.storeName}</h5>
+                        <div className="flex items-center gap-1" style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                              <MapPin size={12} />
                              {MOCK_STORES.find(s => s.id === opt.storeId)?.distance}
                         </div>
                     </div>
                 </div>
-                <div className="text-right">
-                    <div className="font-bold text-gray-900">R$ {opt.totalPrice.toFixed(2)}</div>
+                <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontWeight: 800, fontSize: '1.1rem' }}>R$ {opt.totalPrice.toFixed(2)}</div>
                     {idx !== 0 && (
-                        <div className="text-xs text-red-500 font-medium">
+                        <div style={{ fontSize: '0.75rem', color: 'var(--danger)', fontWeight: 600 }}>
                             + R$ {(opt.totalPrice - bestOption.totalPrice).toFixed(2)}
                         </div>
                     )}
