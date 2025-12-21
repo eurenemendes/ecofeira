@@ -31,8 +31,8 @@ export const MOCK_STORES: Store[] = [
     distance: '1.5 km'
   },
   {
-    id: 'store_atacadao',
-    name: 'Atacadão',
+    id: 'store_borges',
+    name: 'Borges',
     color: 'bg-blue-800',
     logo: '🏗️',
     distance: '3.2 km'
