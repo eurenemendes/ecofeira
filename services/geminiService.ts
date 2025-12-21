@@ -2,8 +2,6 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { ProductOffer } from "../types";
 import { MOCK_STORES, STORE_PRICING_FACTORS } from "../constants";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 const productSchema = {
   type: Type.ARRAY,
   items: {
@@ -20,6 +18,9 @@ const productSchema = {
 
 export const searchProductsWithGemini = async (query: string): Promise<ProductOffer[]> => {
   try {
+    // Create instance inside the call to ensure process.env.API_KEY is available
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `Gere uma lista de 6 produtos de supermercado para a busca: "${query}". Foco no mercado brasileiro.`,
@@ -64,6 +65,7 @@ export const searchProductsWithGemini = async (query: string): Promise<ProductOf
 export const suggestRecipe = async (items: string[]): Promise<string> => {
   if (items.length < 2) return "";
   try {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `Sugira uma receita rápida e curta usando apenas: ${items.join(", ")}.`,
