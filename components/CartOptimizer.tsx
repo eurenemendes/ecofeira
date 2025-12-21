@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { CartItem, CartOptimization } from '../types';
 import { MOCK_STORES, STORE_PRICING_FACTORS, RAW_PRODUCTS } from '../constants';
@@ -8,7 +7,6 @@ interface CartOptimizerProps {
   cart: CartItem[];
 }
 
-// Fixed missing closing tags and added default export for CartOptimizer
 const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart }) => {
   
   const optimizedData: CartOptimization[] = useMemo(() => {
@@ -54,7 +52,7 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart }) => {
         storeId: store.id,
         storeName: store.name,
         totalPrice: total,
-        missingItems: cart.length - foundCount,
+        missingItems: cart.length - foundCount, // Itens que não possuem preço real neste mercado
         items: storeItems
       };
     }).sort((a, b) => a.totalPrice - b.totalPrice);
@@ -67,139 +65,132 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart }) => {
   const totalCartItems = cart.length;
 
   return (
-    <div style={{ display: 'grid', gap: '24px', marginTop: '10px' }}>
-      {/* Top Banner: Melhor Opção de Compra */}
+    <div style={{ display: 'grid', gap: '20px' }}>
+      {/* Card de Destaque - Melhor Opção */}
       <div style={{
         background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-        borderRadius: '28px',
-        padding: '30px',
+        borderRadius: '24px',
+        padding: '24px',
         color: 'white',
-        boxShadow: '0 10px 25px -5px rgba(16, 185, 129, 0.4)',
+        boxShadow: 'var(--shadow-lg)',
         position: 'relative',
         overflow: 'hidden'
       }}>
-        {/* Ícone Decorativo de Fundo */}
-        <TrendingDown size={140} style={{ position: 'absolute', right: '-20px', bottom: '-20px', opacity: 0.15, transform: 'rotate(-10deg)' }} />
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', fontSize: '0.9rem', fontWeight: 700, opacity: 0.9 }}>
-          <TrendingDown size={18} /> MELHOR OPÇÃO DE COMPRA
+        {/* Decoração de fundo */}
+        <div style={{ position: 'absolute', right: '-20px', top: '-20px', opacity: 0.1 }}>
+          <TrendingDown size={150} />
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div className="flex items-center gap-2" style={{ marginBottom: '12px', opacity: 0.9 }}>
+          <TrendingDown size={22} />
+          <h3 style={{ fontWeight: 700, fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Melhor Opção de Compra
+          </h3>
+        </div>
+        
+        <div className="flex justify-between items-end">
           <div>
-            <p style={{ fontSize: '0.85rem', marginBottom: '4px', opacity: 0.85 }}>Comprando tudo no:</p>
-            <h2 style={{ fontSize: '2.5rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>{bestOption.storeName}</h2>
-            
-            <div style={{ 
-              marginTop: '16px', 
-              fontSize: '0.8rem', 
-              background: 'rgba(0,0,0,0.1)', 
-              padding: '6px 14px', 
-              borderRadius: '100px', 
-              display: 'inline-flex', 
-              alignItems: 'center', 
-              gap: '6px',
-              fontWeight: 600
-            }}>
-              <CheckCircle2 size={14} /> {totalCartItems - bestOption.missingItems} de {totalCartItems} itens confirmados no banco
+            <p style={{ fontSize: '0.85rem', fontWeight: 500, opacity: 0.8, marginBottom: '4px' }}>Economize comprando no:</p>
+            <div style={{ fontSize: '2rem', fontWeight: 800, lineHeight: 1 }}>
+               {bestOption.storeName}
+            </div>
+            <div className="flex items-center gap-1" style={{ marginTop: '12px', fontSize: '0.8rem', background: 'rgba(255,255,255,0.2)', padding: '4px 10px', borderRadius: '20px', width: 'fit-content' }}>
+                <CheckCircle2 size={14} /> 
+                {totalCartItems - bestOption.missingItems} de {totalCartItems} itens confirmados no banco
             </div>
           </div>
-          
           <div style={{ textAlign: 'right' }}>
-            <p style={{ fontSize: '0.85rem', marginBottom: '4px', opacity: 0.85 }}>Total Estimado</p>
-            <p style={{ fontSize: '2.8rem', fontWeight: 900, margin: 0 }}>R$ {bestOption.totalPrice.toFixed(2).replace('.', ',')}</p>
-            <p style={{ fontSize: '0.85rem', marginTop: '8px', fontWeight: 600, color: '#fef3c7' }}>
-              Economia de R$ {(worstOption.totalPrice - bestOption.totalPrice).toFixed(2).replace('.', ',')} comparado ao mais caro.
-            </p>
+            <p style={{ fontSize: '0.85rem', opacity: 0.8 }}>Total Estimado</p>
+            <p style={{ fontSize: '2.2rem', fontWeight: 800 }}>R$ {bestOption.totalPrice.toFixed(2).replace('.', ',')}</p>
           </div>
         </div>
+        
+        {optimizedData.length > 1 && (
+             <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.2)', fontSize: '0.9rem' }}>
+                Você economiza <span style={{ fontWeight: 800, color: '#fcd34d' }}>R$ {(worstOption.totalPrice - bestOption.totalPrice).toFixed(2).replace('.', ',')}</span> nesta escolha!
+             </div>
+        )}
       </div>
 
-      {/* Bottom List: Comparativo por Mercado */}
-      <div>
-        <h4 style={{ fontWeight: 800, color: 'var(--text-main)', fontSize: '1.2rem', marginBottom: '16px', paddingLeft: '4px' }}>Comparativo por Mercado</h4>
+      {/* Lista Comparativa */}
+      <div style={{ display: 'grid', gap: '12px' }}>
+        <h4 style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '1.1rem', marginLeft: '4px', marginBottom: '4px' }}>Comparativo por Mercado</h4>
         
-        <div style={{ display: 'grid', gap: '14px' }}>
-          {optimizedData.map((opt, idx) => {
-            const storeInfo = MOCK_STORES.find(s => s.id === opt.storeId);
-            const isBest = idx === 0;
-
-            return (
-              <div key={opt.storeId} style={{ 
-                background: isBest ? 'var(--primary-light)' : 'var(--card-bg)', 
-                borderRadius: '20px', 
-                padding: '20px', 
-                border: isBest ? '2px solid var(--primary)' : '1px solid var(--border)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                boxShadow: isBest ? 'var(--shadow-md)' : 'var(--shadow-sm)',
-                position: 'relative'
-              }}>
-                {isBest && (
-                  <span style={{
-                    position: 'absolute',
-                    top: '-10px',
-                    left: '24px',
-                    background: 'var(--primary)',
-                    color: 'white',
-                    fontSize: '0.6rem',
-                    fontWeight: 900,
-                    padding: '3px 10px',
-                    borderRadius: '6px',
-                    textTransform: 'uppercase'
-                  }}>MAIS BARATO</span>
-                )}
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                  <div style={{
-                    width: '52px',
-                    height: '52px',
-                    borderRadius: '14px',
-                    background: 'var(--bg)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '1.5rem',
-                    border: '1px solid var(--border)'
-                  }}>
-                    {storeInfo?.logo}
-                  </div>
-                  <div>
-                    <h5 style={{ fontWeight: 800, fontSize: '1.05rem', margin: 0 }}>{opt.storeName}</h5>
-                    <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                        <MapPin size={12} /> {storeInfo?.distance}
-                      </span>
-                      <span style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: '4px', 
-                        fontSize: '0.75rem', 
-                        color: opt.missingItems === 0 ? 'var(--primary)' : 'var(--text-muted)',
-                        fontWeight: opt.missingItems === 0 ? 700 : 500
-                      }}>
-                        {opt.missingItems === 0 ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
-                        {totalCartItems - opt.missingItems}/{totalCartItems} no banco
-                      </span>
-                    </div>
-                  </div>
+        {optimizedData.map((opt, idx) => (
+          <div key={opt.storeId} style={{ 
+            position: 'relative', 
+            padding: '18px', 
+            borderRadius: '20px', 
+            border: idx === 0 ? '2px solid var(--primary)' : '1px solid var(--border)',
+            background: idx === 0 ? 'var(--primary-light)' : 'var(--card-bg)',
+            boxShadow: idx === 0 ? 'var(--shadow-md)' : 'var(--shadow-sm)',
+            transition: 'transform 0.2s'
+          }}>
+            {idx === 0 && (
+                <div style={{
+                  position: 'absolute',
+                  top: '-10px',
+                  left: '20px',
+                  background: 'var(--primary)',
+                  color: 'white',
+                  fontSize: '0.65rem',
+                  padding: '4px 12px',
+                  borderRadius: '8px',
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)'
+                }}>
+                    Mais Econômico
                 </div>
+            )}
 
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1.4rem',
+                      background: 'var(--bg)',
+                      border: '1px solid var(--border)'
+                    }}>
+                        {MOCK_STORES.find(s => s.id === opt.storeId)?.logo}
+                    </div>
+                    <div>
+                        <h5 style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-main)' }}>{opt.storeName}</h5>
+                        <div className="flex items-center gap-3" style={{ marginTop: '4px' }}>
+                            <div className="flex items-center gap-1" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                <MapPin size={12} />
+                                {MOCK_STORES.find(s => s.id === opt.storeId)?.distance}
+                            </div>
+                            <div className="flex items-center gap-1" style={{ 
+                                fontSize: '0.75rem', 
+                                color: opt.missingItems === 0 ? 'var(--primary)' : 'var(--text-muted)',
+                                fontWeight: opt.missingItems === 0 ? 700 : 500
+                            }}>
+                                {opt.missingItems === 0 ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+                                {totalCartItems - opt.missingItems}/{totalCartItems} no banco
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontWeight: 800, fontSize: '1.3rem', color: isBest ? 'var(--primary)' : 'var(--text-main)' }}>
-                    R$ {opt.totalPrice.toFixed(2).replace('.', ',')}
-                  </div>
-                  {!isBest && (
-                    <div style={{ fontSize: '0.75rem', color: 'var(--danger)', fontWeight: 600, marginTop: '2px' }}>
-                      + R$ {(opt.totalPrice - bestOption.totalPrice).toFixed(2).replace('.', ',')}
+                    <div style={{ fontWeight: 800, fontSize: '1.2rem', color: idx === 0 ? 'var(--primary)' : 'var(--text-main)' }}>
+                        R$ {opt.totalPrice.toFixed(2).replace('.', ',')}
                     </div>
-                  )}
+                    {idx !== 0 && (
+                        <div style={{ fontSize: '0.75rem', color: 'var(--danger)', fontWeight: 700, marginTop: '2px' }}>
+                            + R$ {(opt.totalPrice - bestOption.totalPrice).toFixed(2).replace('.', ',')}
+                        </div>
+                    )}
                 </div>
-              </div>
-            );
-          })}
-        </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
