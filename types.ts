@@ -38,6 +38,8 @@ export enum AppView {
   HOME = 'HOME',
   SEARCH = 'SEARCH',
   CART = 'CART',
+  STORES = 'STORES',
+  STORE_DETAIL = 'STORE_DETAIL'
 }
 
 export interface CartOptimization {
