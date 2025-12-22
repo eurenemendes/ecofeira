@@ -142,7 +142,17 @@
 
       @media (max-width: 640px) {
         .search-container { display: none; }
-        .product-grid { grid-template-columns: 1fr; }
+        .product-grid { 
+          grid-template-columns: repeat(2, 1fr); 
+          gap: 12px;
+        }
+        .card {
+          padding: 10px;
+          border-radius: 16px;
+        }
+        .container {
+          padding: 0 12px;
+        }
       }
     </style>
     <script type="importmap">

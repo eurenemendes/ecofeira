@@ -120,27 +120,27 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd, layout = 'gri
         </div>
       )}
 
-      <div style={{
+      <div className="product-card-image" style={{
         background: 'var(--bg)',
-        height: '140px',
+        height: '120px',
         borderRadius: '16px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: '16px',
+        marginBottom: '12px',
         position: 'relative',
         overflow: 'hidden'
       }}>
-        <ShoppingBasket size={48} style={{opacity: 0.1, color: 'var(--primary)'}} />
+        <ShoppingBasket size={48} className="placeholder-icon" style={{opacity: 0.1, color: 'var(--primary)'}} />
         <span style={{
           position: 'absolute',
-          bottom: '10px',
-          right: '10px',
+          bottom: '8px',
+          right: '8px',
           background: 'var(--card-bg)',
           color: 'var(--text-main)',
-          padding: '4px 10px',
-          borderRadius: '8px',
-          fontSize: '0.7rem',
+          padding: '2px 8px',
+          borderRadius: '6px',
+          fontSize: '0.65rem',
           fontWeight: 800,
           border: '1px solid var(--border)',
           boxShadow: 'var(--shadow-sm)',
@@ -152,42 +152,42 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd, layout = 'gri
         </span>
       </div>
       
-      <div style={{ padding: '0 4px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <h4 style={{fontWeight: 700, fontSize: '0.95rem', marginBottom: '4px', lineHeight: 1.3}}>{product.name}</h4>
-        <div className="flex gap-2 items-center" style={{marginBottom: '12px'}}>
-           <span style={{fontSize: '0.65rem', background: 'var(--primary-light)', color: 'var(--primary)', padding: '2px 6px', borderRadius: '4px', fontWeight: 700, textTransform: 'uppercase'}}>{product.category}</span>
+      <div style={{ padding: '0 2px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <h4 style={{fontWeight: 700, fontSize: '0.85rem', marginBottom: '4px', lineHeight: 1.2, minHeight: '2.4em', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden'}}>{product.name}</h4>
+        <div className="flex gap-2 items-center" style={{marginBottom: '8px'}}>
+           <span style={{fontSize: '0.55rem', background: 'var(--primary-light)', color: 'var(--primary)', padding: '2px 5px', borderRadius: '4px', fontWeight: 700, textTransform: 'uppercase'}}>{product.category}</span>
         </div>
         
         <div style={{ marginTop: 'auto' }}>
           {product.isPromo && (
-            <div style={{ marginBottom: '4px' }}>
-              <div className="flex items-center gap-1" style={{ color: 'var(--primary)', fontSize: '0.75rem', fontWeight: 700 }}>
-                <TrendingDown size={12} /> Economia de R$ {savings.toFixed(2).replace('.', ',')}
-              </div>
-              <span style={{fontSize: '0.8rem', textDecoration: 'line-through', color: 'var(--text-muted)', opacity: 0.7}}>
-                De R$ {product.originalPrice.toFixed(2).replace('.', ',')}
+            <div style={{ marginBottom: '2px' }}>
+              <span style={{fontSize: '0.7rem', textDecoration: 'line-through', color: 'var(--text-muted)', opacity: 0.7}}>
+                R$ {product.originalPrice.toFixed(2).replace('.', ',')}
               </span>
             </div>
           )}
           
           <div className="flex justify-between items-center">
             <div>
-              <span style={{fontSize: '1.3rem', fontWeight: 800, color: product.isPromo ? 'var(--danger)' : 'var(--text-main)'}}>
+              <span style={{fontSize: '1.1rem', fontWeight: 800, color: product.isPromo ? 'var(--danger)' : 'var(--text-main)'}}>
                 R$ {product.price.toFixed(2).replace('.', ',')}
               </span>
             </div>
             <button 
               className={`btn ${added ? 'btn-success' : 'btn-primary'}`} 
               style={{
-                padding: '8px 12px', 
-                borderRadius: '12px',
+                padding: '6px', 
+                borderRadius: '10px',
+                minWidth: '36px',
+                height: '36px',
+                justifyContent: 'center',
                 background: added ? 'var(--primary)' : undefined,
                 transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
               }} 
               onClick={handleAdd}
               disabled={added}
             >
-              {added ? <Check size={20} className="animate-pop" /> : <Plus size={20} />}
+              {added ? <Check size={18} className="animate-pop" /> : <Plus size={18} />}
             </button>
           </div>
         </div>
