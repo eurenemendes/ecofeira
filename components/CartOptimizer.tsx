@@ -3,6 +3,10 @@ import { CartItem, CartOptimization, ProductOffer } from '../types';
 import { MOCK_STORES, STORE_PRICING_FACTORS, RAW_PRODUCTS } from '../constants';
 import { TrendingDown, MapPin, CheckCircle2, AlertCircle, Eye, X, Plus, Trash2 } from 'lucide-react';
 
+interface OptimizedCartItem extends CartItem {
+  isConfirmed: boolean;
+}
+
 interface CartOptimizerProps {
   cart: CartItem[];
   onAdd: (product: ProductOffer) => void;
@@ -13,13 +17,14 @@ interface CartOptimizerProps {
 const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart, onAdd, onDecrement, onRemove }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const optimizedData: CartOptimization[] = useMemo(() => {
+  const optimizedData = useMemo(() => {
     if (cart.length === 0) return [];
 
     return MOCK_STORES.map(store => {
       let total = 0;
+      let confirmedTotal = 0;
       let foundCount = 0;
-      const storeItems: CartItem[] = [];
+      const storeItems: OptimizedCartItem[] = [];
 
       const targetStoreFactor = STORE_PRICING_FACTORS[store.id] || 1.0;
 
@@ -30,10 +35,13 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart, onAdd, onDecrement,
         );
 
         let finalPrice: number;
+        let isConfirmed = false;
 
         if (dbProduct) {
           finalPrice = dbProduct.promocao ? (dbProduct.preco_promocional || dbProduct.preco_normal) : dbProduct.preco_normal;
           foundCount++;
+          isConfirmed = true;
+          confirmedTotal += finalPrice * item.quantity;
         } else {
           const sourceStoreFactor = STORE_PRICING_FACTORS[item.storeId] || 1.0;
           const estimatedBasePrice = item.price / sourceStoreFactor;
@@ -45,7 +53,8 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart, onAdd, onDecrement,
           ...item, 
           price: finalPrice, 
           storeName: store.name, 
-          storeId: store.id 
+          storeId: store.id,
+          isConfirmed
         });
       });
 
@@ -53,6 +62,7 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart, onAdd, onDecrement,
         storeId: store.id,
         storeName: store.name,
         totalPrice: total,
+        confirmedTotal: confirmedTotal,
         missingItems: cart.length - foundCount,
         items: storeItems
       };
@@ -65,6 +75,9 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart, onAdd, onDecrement,
   const worstOption = optimizedData[optimizedData.length - 1];
   const totalCartItems = cart.length;
 
+  // Filtrar apenas os itens que pertencem de fato ao mercado (estão no banco)
+  const confirmedItems = bestOption.items.filter(item => item.isConfirmed);
+
   return (
     <div style={{ display: 'grid', gap: '24px', width: '100%' }}>
       {/* Pop-up de Detalhes (Modal) */}
@@ -75,8 +88,8 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart, onAdd, onDecrement,
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          backdropFilter: 'blur(8px)',
+          backgroundColor: 'rgba(0, 0, 0, 0.4)',
+          backdropFilter: 'blur(6px)',
           zIndex: 2000,
           display: 'flex',
           alignItems: 'center',
@@ -84,53 +97,64 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart, onAdd, onDecrement,
           padding: '20px'
         }} onClick={() => setIsModalOpen(false)}>
           <div style={{
-            background: 'var(--card-bg)',
+            background: 'var(--bg)',
             width: '100%',
-            maxWidth: '540px',
-            borderRadius: '24px',
-            padding: '24px',
-            boxShadow: 'var(--shadow-lg)',
+            maxWidth: '560px',
+            borderRadius: '28px',
+            padding: '28px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
             position: 'relative',
-            maxHeight: '80vh',
+            maxHeight: '85vh',
             overflowY: 'auto'
           }} onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-center" style={{ marginBottom: '20px' }}>
-              <h4 style={{ fontWeight: 800, fontSize: '1.2rem', color: 'var(--text-main)' }}>Itens em {bestOption.storeName}</h4>
-              <button onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+            <div className="flex justify-between items-center" style={{ marginBottom: '24px' }}>
+              <h4 style={{ fontWeight: 800, fontSize: '1.25rem', color: 'var(--text-main)' }}>
+                Itens em <span style={{ color: 'var(--primary)' }}>{bestOption.storeName}</span>
+              </h4>
+              <button onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px' }}>
                 <X size={24} />
               </button>
             </div>
             
             <div style={{ display: 'grid', gap: '12px' }}>
-              {bestOption.items.map((item, idx) => (
-                <div key={idx} className="flex justify-between items-center" style={{ padding: '16px', background: 'var(--bg)', borderRadius: '16px', border: '1px solid var(--border)' }}>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)', marginBottom: '2px' }}>{item.name}</p>
-                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>R$ {item.price.toFixed(2).replace('.', ',')} p/ un.</p>
-                  </div>
-                  
-                  <div className="flex flex-col items-end gap-3" style={{ minWidth: '160px' }}>
-                    <p style={{ fontWeight: 800, color: 'var(--primary)', fontSize: '1rem' }}>R$ {(item.price * item.quantity).toFixed(2).replace('.', ',')}</p>
-                    <div className="flex items-center gap-2">
-                       {/* Seletor de quantidade compacto */}
-                       <div style={{ 
+              {confirmedItems.length > 0 ? (
+                confirmedItems.map((item, idx) => (
+                  <div key={idx} className="flex justify-between items-center" style={{ 
+                    padding: '16px', 
+                    background: 'var(--card-bg)', 
+                    borderRadius: '18px', 
+                    border: '1px solid var(--border)',
+                    boxShadow: 'var(--shadow-sm)'
+                  }}>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-main)', marginBottom: '2px' }}>{item.name}</p>
+                      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>R$ {item.price.toFixed(2).replace('.', ',')} p/ un.</p>
+                    </div>
+                    
+                    <div className="flex items-center gap-4">
+                      <p style={{ fontWeight: 800, color: 'var(--primary)', fontSize: '1.1rem', minWidth: '80px', textAlign: 'right' }}>
+                        R$ {(item.price * item.quantity).toFixed(2).replace('.', ',')}
+                      </p>
+                      
+                      <div className="flex items-center gap-2">
+                        <div style={{ 
                           display: 'flex', 
                           alignItems: 'center', 
                           border: '1px solid var(--border)', 
-                          borderRadius: '8px', 
-                          background: 'var(--card-bg)', 
+                          borderRadius: '10px', 
+                          background: 'var(--bg)', 
                           overflow: 'hidden'
                         }}>
                           <button 
                             onClick={() => onDecrement(item.id)}
-                            style={{ background: 'none', border: 'none', padding: '4px 10px', cursor: 'pointer', fontWeight: 700, color: 'var(--text-main)' }}
+                            style={{ background: 'none', border: 'none', padding: '6px 12px', cursor: 'pointer', fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)' }}
                           >
                             -
                           </button>
-                          <span style={{ minWidth: '24px', textAlign: 'center', fontSize: '0.85rem', fontWeight: 800 }}>{item.quantity}</span>
+                          <span style={{ minWidth: '28px', textAlign: 'center', fontSize: '0.9rem', fontWeight: 800 }}>{item.quantity}</span>
                           <button 
                             onClick={() => onAdd(item)}
-                            style={{ background: 'none', border: 'none', padding: '4px 10px', cursor: 'pointer', fontWeight: 700, color: 'var(--text-main)' }}
+                            style={{ background: 'none', border: 'none', padding: '6px 12px', cursor: 'pointer', fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)' }}
                           >
                             +
                           </button>
@@ -139,29 +163,33 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart, onAdd, onDecrement,
                         <button 
                           onClick={() => onRemove(item.id)}
                           style={{ 
-                            background: 'rgba(239, 68, 68, 0.1)', 
+                            background: 'rgba(239, 68, 68, 0.08)', 
                             color: 'var(--danger)', 
                             border: 'none', 
-                            borderRadius: '8px', 
-                            padding: '6px', 
+                            borderRadius: '10px', 
+                            padding: '8px', 
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center'
                           }}
-                          title="Remover"
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={18} />
                         </button>
+                      </div>
                     </div>
                   </div>
+                ))
+              ) : (
+                <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                  Nenhum item deste mercado encontrado no banco de dados.
                 </div>
-              ))}
+              )}
             </div>
 
-            <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '2px solid var(--border)', textAlign: 'right' }}>
-               <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700 }}>VALOR ESTIMADO NO MERCADO</p>
-               <p style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--text-main)' }}>R$ {bestOption.totalPrice.toFixed(2).replace('.', ',')}</p>
+            <div style={{ marginTop: '28px', paddingTop: '20px', borderTop: '2px solid var(--border)', textAlign: 'right' }}>
+               <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>VALOR NESTE MERCADO</p>
+               <p style={{ fontSize: '2.4rem', fontWeight: 900, color: 'var(--text-main)' }}>R$ {bestOption.confirmedTotal.toFixed(2).replace('.', ',')}</p>
             </div>
           </div>
         </div>
@@ -280,7 +308,7 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart, onAdd, onDecrement,
               padding: '24px', 
               borderRadius: '24px', 
               border: isBest ? '2px solid #6fd4b2' : '1px solid var(--border)',
-              background: isBest ? '#f0faf6' : 'var(--card-bg)',
+              background: isBest ? 'var(--primary-light)' : 'var(--card-bg)',
               boxShadow: isBest ? '0 10px 20px -5px rgba(111, 212, 178, 0.15)' : 'var(--shadow-sm)',
               transition: 'all 0.2s ease',
               display: 'flex',
