@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Search, ShoppingCart, Store as StoreIcon, Trash2, History, X, Moon, Sun, Filter, ArrowUpDown, Tag, ArrowUp, ChevronRight, Package, Check } from 'lucide-react';
+import { Search, ShoppingCart, Store as StoreIcon, Trash2, History, X, Moon, Sun, Filter, ArrowUpDown, Tag, ArrowUp, ChevronRight, Package, Check, AlertTriangle } from 'lucide-react';
 import { searchProductsWithGemini } from './services/geminiService';
 import { ProductOffer, CartItem, AppView } from './types';
 import { INITIAL_SUGGESTIONS, MOCK_STORES, RAW_PRODUCTS } from './constants';
@@ -24,6 +24,7 @@ function App() {
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('ecofeira_theme') === 'dark');
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [isClearModalOpen, setIsClearModalOpen] = useState(false);
   
   const searchRef = useRef<HTMLDivElement>(null);
   const headerSearchRef = useRef<HTMLDivElement>(null);
@@ -169,6 +170,11 @@ function App() {
   const removeFromCart = useCallback((id: string) => {
     setCart(prev => prev.filter(item => item.id !== id));
   }, []);
+
+  const clearCart = () => {
+    setCart([]);
+    setIsClearModalOpen(false);
+  };
 
   const totalItems = useMemo(() => cart.reduce((acc, item) => acc + item.quantity, 0), [cart]);
 
@@ -382,7 +388,7 @@ function App() {
             <div className="flex items-center justify-between" style={{ marginBottom: '30px' }}>
               <h2 style={{fontWeight: 800, fontSize: '2rem'}}>Minha Lista</h2>
               {cart.length > 0 && (
-                <button className="btn btn-ghost" style={{ color: 'var(--danger)', borderColor: 'rgba(239, 68, 68, 0.2)' }} onClick={() => confirm('Limpar lista?') && setCart([])}>
+                <button className="btn btn-ghost" style={{ color: 'var(--danger)', borderColor: 'rgba(239, 68, 68, 0.2)' }} onClick={() => setIsClearModalOpen(true)}>
                   <Trash2 size={18} /> Limpar
                 </button>
               )}
@@ -503,6 +509,37 @@ function App() {
         )}
       </main>
 
+      {/* Modal de Confirmação Profissional */}
+      {isClearModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsClearModalOpen(false)}>
+          <div className="modal-content animate-pop" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-icon-container">
+              <AlertTriangle size={32} color="var(--danger)" />
+            </div>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '12px', color: 'var(--text-main)' }}>Limpar sua lista?</h3>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '28px', fontSize: '0.95rem' }}>
+              Essa ação irá remover todos os {totalItems} itens da sua lista de compras atual. Esta ação não pode ser desfeita.
+            </p>
+            <div className="flex gap-4 justify-center" style={{ width: '100%' }}>
+              <button 
+                className="btn btn-ghost" 
+                style={{ flex: 1, padding: '12px', borderRadius: '14px' }}
+                onClick={() => setIsClearModalOpen(false)}
+              >
+                Cancelar
+              </button>
+              <button 
+                className="btn btn-primary" 
+                style={{ flex: 1, padding: '12px', borderRadius: '14px', background: 'var(--danger)' }}
+                onClick={clearCart}
+              >
+                Sim, limpar tudo
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Botão Voltar ao Topo */}
       <button 
         onClick={scrollToTop}
@@ -521,11 +558,10 @@ function App() {
         }
 
         @keyframes pop {
-          0% { transform: scale(1); }
-          50% { transform: scale(1.3); }
-          100% { transform: scale(1); }
+          0% { transform: scale(0.9); opacity: 0; }
+          100% { transform: scale(1); opacity: 1; }
         }
-        .animate-pop { animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .animate-pop { animation: pop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
         
         .qty-btn:hover { background: rgba(0,0,0,0.05); }
         .delete-btn:hover { background: rgba(239, 68, 68, 0.15); transform: scale(1.05); }
@@ -649,6 +685,43 @@ function App() {
         .btn-back-to-top:hover {
           background: var(--primary-hover);
           transform: translateY(-5px) scale(1.05);
+        }
+
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.5);
+          backdrop-filter: blur(8px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 2000;
+          padding: 20px;
+        }
+
+        .modal-content {
+          background: var(--card-bg);
+          max-width: 400px;
+          width: 100%;
+          padding: 32px;
+          border-radius: 24px;
+          text-align: center;
+          box-shadow: 0 20px 40px -10px rgba(0,0,0,0.3);
+          border: 1px solid var(--border);
+        }
+
+        .modal-icon-container {
+          width: 64px;
+          height: 64px;
+          background: rgba(239, 68, 68, 0.1);
+          border-radius: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 auto 20px;
         }
       `}</style>
     </div>
