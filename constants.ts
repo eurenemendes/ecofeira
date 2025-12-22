@@ -20,14 +20,14 @@ export const MOCK_STORES: Store[] = [
     id: 'store_extra',
     name: 'Extra',
     color: 'bg-red-600',
-    logo: '📦',
+    logo: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQOf-t-njVAeC0v0M2Xy5e4Kn9QND636ytb9A&s',
     distance: '2.0 km'
   },
   {
     id: 'store_pao',
     name: 'Pão de Açúcar',
     color: 'bg-green-700',
-    logo: '🍃',
+    logo: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRL5Wc0BCEz604XzlbPWbs0eWwVhRErL_Rbbg&s',
     distance: '1.5 km'
   },
   {

@@ -151,6 +151,13 @@ function App() {
     setSearchResults(storeProducts);
   };
 
+  const renderLogo = (logo: string, size: string = '1em', alt: string = '') => {
+    if (logo.startsWith('http')) {
+      return <img src={logo} alt={alt} style={{ width: size, height: size, objectFit: 'contain', borderRadius: '4px' }} />;
+    }
+    return logo;
+  };
+
   const filteredAndSortedResults = useMemo(() => {
     let results = [...searchResults];
     if (selectedCategory) results = results.filter(p => p.category === selectedCategory);
@@ -304,7 +311,9 @@ function App() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
               {filteredStores.map(store => (
                 <div key={store.id} className="card store-card" onClick={() => openStoreDetail(store)} style={{cursor: 'pointer', padding: '24px', textAlign: 'center'}}>
-                  <div style={{fontSize: '3rem', marginBottom: '16px'}}>{store.logo}</div>
+                  <div style={{height: '80px', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem'}}>
+                    {renderLogo(store.logo, '80px', store.name)}
+                  </div>
                   <h3 style={{fontWeight: 800, fontSize: '1.25rem', marginBottom: '8px'}}>{store.name}</h3>
                   <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: 'var(--text-muted)', fontSize: '0.9rem'}}>
                     <MapPin size={14} /> <span>{store.distance} da sua localização</span>
@@ -321,7 +330,9 @@ function App() {
             <div className="flex items-center gap-4" style={{ marginBottom: '30px' }}>
               <button className="btn btn-ghost" onClick={() => setView(AppView.STORES)} style={{padding: '10px'}}><ArrowLeft size={20} /></button>
               <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
-                <div style={{fontSize: '2.5rem'}}>{selectedStoreData.logo}</div>
+                <div style={{fontSize: '2.5rem', width: '60px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                  {renderLogo(selectedStoreData.logo, '60px', selectedStoreData.name)}
+                </div>
                 <div>
                   <h2 style={{fontWeight: 800, fontSize: '2rem'}}>{selectedStoreData.name}</h2>
                   <div style={{color: 'var(--text-muted)', fontSize: '0.9rem'}}>{selectedStoreData.distance} • Todos os produtos</div>
@@ -377,7 +388,7 @@ function App() {
               <div style={{ width: '1px', background: 'var(--border)', margin: '0 5px' }}></div>
               {categories.map(cat => (<button key={cat} onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)} className={`btn ${selectedCategory === cat ? 'btn-primary' : 'btn-ghost'}`} style={{ fontSize: '0.75rem', padding: '6px 12px', whiteSpace: 'nowrap' }}>{cat}</button>))}
               <div style={{ width: '1px', background: 'var(--border)', margin: '0 5px' }}></div>
-              {stores.map(store => (<button key={store.id} onClick={() => setSelectedStore(selectedStore === store.id ? null : store.id)} className={`btn ${selectedStore === store.id ? 'btn-primary' : 'btn-ghost'}`} style={{ fontSize: '0.75rem', padding: '6px 12px', whiteSpace: 'nowrap' }}>{store.logo} {store.name}</button>))}
+              {stores.map(store => (<button key={store.id} onClick={() => setSelectedStore(selectedStore === store.id ? null : store.id)} className={`btn ${selectedStore === store.id ? 'btn-primary' : 'btn-ghost'}`} style={{ fontSize: '0.75rem', padding: '6px 12px', whiteSpace: 'nowrap' }}>{renderLogo(store.logo, '16px', store.name)} {store.name}</button>))}
             </div>
             {isSearching ? (
               <div style={{ textAlign: 'center', padding: '80px 0' }}>

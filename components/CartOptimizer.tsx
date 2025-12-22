@@ -88,6 +88,14 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart, onAdd, onDecrement,
     return viewingStore.items.filter(item => item.isConfirmed);
   }, [viewingStore]);
 
+  const renderLogo = (logo: string | undefined, size: string = '1em', alt: string = '') => {
+    if (!logo) return null;
+    if (logo.startsWith('http')) {
+      return <img src={logo} alt={alt} style={{ width: size, height: size, objectFit: 'contain', borderRadius: '4px' }} />;
+    }
+    return logo;
+  };
+
   if (cart.length === 0) return null;
 
   const bestOption = optimizedData[0];
@@ -372,7 +380,7 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart, onAdd, onDecrement,
                     border: '1px solid var(--border)',
                     boxShadow: 'var(--shadow-sm)'
                   }}>
-                      {storeInfo?.logo}
+                      {renderLogo(storeInfo?.logo, '40px', opt.storeName)}
                   </div>
                   <div>
                       <div className="flex items-center gap-3">
