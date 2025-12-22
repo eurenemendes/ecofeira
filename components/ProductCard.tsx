@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ProductOffer } from '../types';
-import { Plus, ShoppingBasket, Tag, TrendingDown, Check } from 'lucide-react';
+import { Plus, ShoppingBasket, Tag, Check } from 'lucide-react';
+import { MOCK_STORES } from '../constants';
 
 interface ProductCardProps {
   product: ProductOffer;
@@ -13,10 +14,20 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd, layout = 'gri
   const savings = product.originalPrice - product.price;
   const discountPercent = Math.round((savings / product.originalPrice) * 100);
 
+  const storeInfo = MOCK_STORES.find(s => s.id === product.storeId);
+
   const handleAdd = () => {
     onAdd(product);
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
+  };
+
+  const renderLogo = (logo: string | undefined, size: string = '24px') => {
+    if (!logo) return null;
+    if (logo.startsWith('http')) {
+      return <img src={logo} alt="" style={{ width: size, height: size, objectFit: 'contain' }} />;
+    }
+    return <span style={{ fontSize: '1.2rem' }}>{logo}</span>;
   };
 
   if (layout === 'list') {
@@ -26,9 +37,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd, layout = 'gri
         alignItems: 'center', 
         padding: '12px 20px', 
         gap: '20px',
-        minHeight: '100px'
+        minHeight: '100px',
+        position: 'relative'
       }}>
-        {/* Badge de Promoção Compacto */}
         {product.isPromo && (
           <div style={{
             position: 'absolute',
@@ -59,12 +70,31 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd, layout = 'gri
           <ShoppingBasket size={32} style={{opacity: 0.1, color: 'var(--primary)'}} />
         </div>
 
-        <div style={{ flex: 1 }}>
-          <div className="flex items-center gap-3" style={{ marginBottom: '2px' }}>
-            <h4 style={{fontWeight: 700, fontSize: '0.95rem'}}>{product.name}</h4>
-            <span style={{fontSize: '0.6rem', background: 'var(--primary-light)', color: 'var(--primary)', padding: '2px 6px', borderRadius: '4px', fontWeight: 700, textTransform: 'uppercase'}}>{product.category}</span>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+          <div>
+            <div className="flex items-center gap-3" style={{ marginBottom: '2px' }}>
+              <h4 style={{fontWeight: 700, fontSize: '0.95rem'}}>{product.name}</h4>
+              <span style={{fontSize: '0.6rem', background: 'var(--primary-light)', color: 'var(--primary)', padding: '2px 6px', borderRadius: '4px', fontWeight: 700, textTransform: 'uppercase'}}>{product.category}</span>
+            </div>
           </div>
-          <p style={{fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600}}>{product.storeName}</p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', minWidth: '60px' }}>
+             <div style={{ 
+               width: '36px', 
+               height: '36px', 
+               background: 'var(--card-bg)', 
+               border: '1px solid var(--border)', 
+               borderRadius: '8px',
+               display: 'flex',
+               alignItems: 'center',
+               justifyContent: 'center',
+               padding: '4px',
+               boxShadow: 'var(--shadow-sm)'
+             }}>
+               {renderLogo(storeInfo?.logo, '24px')}
+             </div>
+             <span style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--text-muted)' }}>{product.storeName}</span>
+          </div>
         </div>
 
         <div style={{ textAlign: 'right', minWidth: '120px' }}>
@@ -132,30 +162,46 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd, layout = 'gri
         overflow: 'hidden'
       }}>
         <ShoppingBasket size={48} className="placeholder-icon" style={{opacity: 0.1, color: 'var(--primary)'}} />
-        <span style={{
-          position: 'absolute',
-          bottom: '8px',
-          right: '8px',
-          background: 'var(--card-bg)',
-          color: 'var(--text-main)',
-          padding: '2px 8px',
-          borderRadius: '6px',
-          fontSize: '0.65rem',
-          fontWeight: 800,
-          border: '1px solid var(--border)',
-          boxShadow: 'var(--shadow-sm)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '4px'
-        }}>
-          {product.storeName}
-        </span>
       </div>
       
       <div style={{ padding: '0 2px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <h4 style={{fontWeight: 700, fontSize: '0.85rem', marginBottom: '4px', lineHeight: 1.2, minHeight: '2.4em', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden'}}>{product.name}</h4>
-        <div className="flex gap-2 items-center" style={{marginBottom: '8px'}}>
-           <span style={{fontSize: '0.55rem', background: 'var(--primary-light)', color: 'var(--primary)', padding: '2px 5px', borderRadius: '4px', fontWeight: 700, textTransform: 'uppercase'}}>{product.category}</span>
+        <div className="flex justify-between items-start" style={{ gap: '12px', marginBottom: '8px' }}>
+          <div style={{ flex: 1 }}>
+            <h4 style={{
+              fontWeight: 700, 
+              fontSize: '0.85rem', 
+              marginBottom: '4px', 
+              lineHeight: 1.2, 
+              minHeight: '2.4em', 
+              display: '-webkit-box', 
+              WebkitLineClamp: 2, 
+              WebkitBoxOrient: 'vertical', 
+              overflow: 'hidden'
+            }}>
+              {product.name}
+            </h4>
+            <div className="flex gap-2 items-center">
+               <span style={{fontSize: '0.55rem', background: 'var(--primary-light)', color: 'var(--primary)', padding: '2px 5px', borderRadius: '4px', fontWeight: 700, textTransform: 'uppercase'}}>{product.category}</span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+            <div style={{ 
+              width: '40px', 
+              height: '40px', 
+              background: 'white', 
+              border: '1px solid var(--border)', 
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '4px',
+              boxShadow: 'var(--shadow-sm)'
+            }}>
+              {renderLogo(storeInfo?.logo, '28px')}
+            </div>
+            <span style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--text-muted)' }}>{product.storeName}</span>
+          </div>
         </div>
         
         <div style={{ marginTop: 'auto' }}>
