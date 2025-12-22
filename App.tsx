@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Search, ShoppingCart, Store as StoreIcon, Trash2, History, X, Moon, Sun, Filter, ArrowUpDown, Tag, ArrowUp, ChevronRight, Package, Check, AlertTriangle, LayoutGrid, List, ArrowLeft, MapPin } from 'lucide-react';
 import { searchProductsWithGemini } from './services/geminiService';
@@ -500,17 +501,34 @@ function App() {
         .btn-icon { background: none; border: none; padding: 8px; border-radius: 8px; cursor: pointer; color: var(--text-muted); transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
         .btn-icon:hover { background: var(--bg); color: var(--text-main); }
         .btn-icon.active { background: var(--primary-light); color: var(--primary); }
-        .product-list-view { display: flex; flex-direction: column; gap: 12px; margin-top: 30px; }
+        
+        .product-list-view { 
+          display: grid; 
+          grid-template-columns: repeat(2, 1fr); 
+          gap: 16px; 
+          margin-top: 30px; 
+        }
+        
+        @media (max-width: 768px) {
+          .header-nav { display: none; }
+          .product-list-view { 
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 10px; 
+          }
+        }
+
+        @media (max-width: 480px) {
+          .product-list-view { 
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 8px; 
+          }
+        }
         
         .nav-link { background: none; border: none; font-family: inherit; font-weight: 700; color: var(--text-muted); cursor: pointer; padding: 8px 12px; border-radius: 8px; transition: all 0.2s; }
         .nav-link:hover { color: var(--primary); background: var(--primary-light); }
         .nav-link.active { color: var(--primary); }
         
         .store-card:hover { transform: translateY(-8px); border-color: var(--primary); }
-        
-        @media (max-width: 768px) {
-          .header-nav { display: none; }
-        }
       `}</style>
     </div>
   );

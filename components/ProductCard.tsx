@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { ProductOffer } from '../types';
 import { Plus, ShoppingBasket, Tag, Check } from 'lucide-react';
@@ -35,10 +36,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd, layout = 'gri
       <div className="card animate" style={{ 
         flexDirection: 'row', 
         alignItems: 'center', 
-        padding: '12px 20px', 
-        gap: '20px',
-        minHeight: '100px',
-        position: 'relative'
+        padding: '12px', 
+        gap: '12px',
+        minHeight: '110px',
+        position: 'relative',
+        overflow: 'visible'
       }}>
         {product.isPromo && (
           <div style={{
@@ -49,9 +51,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd, layout = 'gri
             color: 'white',
             padding: '2px 8px',
             borderRadius: '6px',
-            fontSize: '0.6rem',
+            fontSize: '0.65rem',
             fontWeight: 800,
-            zIndex: 2,
+            zIndex: 10,
+            boxShadow: 'var(--shadow-sm)'
           }}>
             {discountPercent}% OFF
           </div>
@@ -59,70 +62,99 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd, layout = 'gri
 
         <div style={{
           background: 'var(--bg)',
-          width: '70px',
-          height: '70px',
+          width: '64px',
+          height: '64px',
           borderRadius: '12px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0
         }}>
-          <ShoppingBasket size={32} style={{opacity: 0.1, color: 'var(--primary)'}} />
+          <ShoppingBasket size={28} style={{opacity: 0.1, color: 'var(--primary)'}} />
         </div>
 
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
-          <div>
-            <div className="flex items-center gap-3" style={{ marginBottom: '2px' }}>
-              <h4 style={{fontWeight: 700, fontSize: '0.95rem'}}>{product.name}</h4>
-              <span style={{fontSize: '0.6rem', background: 'var(--primary-light)', color: 'var(--primary)', padding: '2px 6px', borderRadius: '4px', fontWeight: 700, textTransform: 'uppercase'}}>{product.category}</span>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <h4 style={{
+              fontWeight: 700, 
+              fontSize: '0.85rem', 
+              lineHeight: 1.2,
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden'
+            }}>
+              {product.name}
+            </h4>
+            <div>
+              <span style={{
+                fontSize: '0.55rem', 
+                background: '#d1fae5', 
+                color: '#059669', 
+                padding: '2px 6px', 
+                borderRadius: '4px', 
+                fontWeight: 800, 
+                textTransform: 'uppercase'
+              }}>
+                {product.category}
+              </span>
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', minWidth: '60px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
              <div style={{ 
-               width: '36px', 
-               height: '36px', 
+               width: '28px', 
+               height: '28px', 
                background: 'var(--card-bg)', 
                border: '1px solid var(--border)', 
-               borderRadius: '8px',
+               borderRadius: '6px',
                display: 'flex',
                alignItems: 'center',
                justifyContent: 'center',
-               padding: '4px',
+               padding: '2px',
                boxShadow: 'var(--shadow-sm)'
              }}>
-               {renderLogo(storeInfo?.logo, '24px')}
+               {renderLogo(storeInfo?.logo, '18px')}
              </div>
-             <span style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--text-muted)' }}>{product.storeName}</span>
+             <span style={{ fontSize: '0.6rem', fontWeight: 600, color: 'var(--text-muted)' }}>{product.storeName}</span>
           </div>
         </div>
 
-        <div style={{ textAlign: 'right', minWidth: '120px' }}>
-          {product.isPromo && (
-             <span style={{fontSize: '0.75rem', textDecoration: 'line-through', color: 'var(--text-muted)', opacity: 0.7, display: 'block'}}>
-                R$ {product.originalPrice.toFixed(2).replace('.', ',')}
-             </span>
-          )}
-          <span style={{fontSize: '1.2rem', fontWeight: 800, color: product.isPromo ? 'var(--danger)' : 'var(--text-main)'}}>
-            R$ {product.price.toFixed(2).replace('.', ',')}
-          </span>
-        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px', minWidth: '70px' }}>
+          <div style={{ textAlign: 'right' }}>
+            {product.isPromo && (
+               <span style={{fontSize: '0.65rem', textDecoration: 'line-through', color: 'var(--text-muted)', opacity: 0.7, display: 'block'}}>
+                  R$ {product.originalPrice.toFixed(2).replace('.', ',')}
+               </span>
+            )}
+            <span style={{
+              fontSize: '1rem', 
+              fontWeight: 800, 
+              color: product.isPromo ? 'var(--danger)' : 'var(--text-main)',
+              display: 'block'
+            }}>
+              R$ {product.price.toFixed(2).replace('.', ',')}
+            </span>
+          </div>
 
-        <button 
-          className={`btn ${added ? 'btn-success' : 'btn-primary'}`} 
-          style={{
-            padding: '10px', 
-            borderRadius: '12px',
-            background: added ? 'var(--primary)' : undefined,
-            minWidth: '44px',
-            height: '44px',
-            justifyContent: 'center'
-          }} 
-          onClick={handleAdd}
-          disabled={added}
-        >
-          {added ? <Check size={20} className="animate-pop" /> : <Plus size={20} />}
-        </button>
+          <button 
+            className={`btn ${added ? 'btn-success' : 'btn-primary'}`} 
+            style={{
+              padding: '0', 
+              borderRadius: '10px',
+              background: added ? 'var(--primary)' : '#10b981',
+              width: '36px',
+              height: '36px',
+              minWidth: '36px',
+              justifyContent: 'center',
+              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)'
+            }} 
+            onClick={handleAdd}
+            disabled={added}
+          >
+            {added ? <Check size={18} className="animate-pop" /> : <Plus size={18} />}
+          </button>
+        </div>
       </div>
     );
   }
@@ -181,7 +213,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd, layout = 'gri
               {product.name}
             </h4>
             <div className="flex gap-2 items-center">
-               <span style={{fontSize: '0.55rem', background: 'var(--primary-light)', color: 'var(--primary)', padding: '2px 5px', borderRadius: '4px', fontWeight: 700, textTransform: 'uppercase'}}>{product.category}</span>
+               <span style={{fontSize: '0.55rem', background: '#d1fae5', color: '#059669', padding: '2px 5px', borderRadius: '4px', fontWeight: 800, textTransform: 'uppercase'}}>{product.category}</span>
             </div>
           </div>
 
@@ -227,7 +259,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd, layout = 'gri
                 minWidth: '36px',
                 height: '36px',
                 justifyContent: 'center',
-                background: added ? 'var(--primary)' : undefined,
+                background: added ? 'var(--primary)' : '#10b981',
                 transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
               }} 
               onClick={handleAdd}
