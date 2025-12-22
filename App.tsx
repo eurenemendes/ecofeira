@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Search, ShoppingCart, Store as StoreIcon, Trash2, History, X, Moon, Sun, Filter, ArrowUpDown, Tag, ArrowUp, ChevronRight, Package, Check, AlertTriangle } from 'lucide-react';
+import { Search, ShoppingCart, Store as StoreIcon, Trash2, History, X, Moon, Sun, Filter, ArrowUpDown, Tag, ArrowUp, ChevronRight, Package, Check, AlertTriangle, LayoutGrid, List } from 'lucide-react';
 import { searchProductsWithGemini } from './services/geminiService';
 import { ProductOffer, CartItem, AppView } from './types';
 import { INITIAL_SUGGESTIONS, MOCK_STORES, RAW_PRODUCTS } from './constants';
@@ -7,6 +7,7 @@ import ProductCard from './components/ProductCard';
 import CartOptimizer from './components/CartOptimizer';
 
 type SortOption = 'price_asc' | 'price_desc' | 'name_asc';
+type ViewMode = 'grid' | 'list';
 
 interface SuggestionItem {
   name: string;
@@ -15,6 +16,7 @@ interface SuggestionItem {
 
 function App() {
   const [view, setView] = useState<AppView>(AppView.HOME);
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -306,23 +308,43 @@ function App() {
 
         {view === AppView.SEARCH && (
           <div className="animate">
-            <div className="flex items-center justify-between" style={{ marginBottom: '20px' }}>
+            <div className="flex items-center justify-between" style={{ marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
               <div className="flex items-center gap-2">
                 <button className="btn btn-ghost" onClick={() => setView(AppView.HOME)} style={{ padding: '8px' }}><X size={20} /></button>
                 <h2 style={{fontWeight: 800, fontSize: '1.25rem'}}>{filteredAndSortedResults.length} resultados para "{query}"</h2>
               </div>
               
-              <div className="flex items-center gap-2">
-                <ArrowUpDown size={16} color="var(--text-muted)" />
-                <select 
-                  value={sortBy} 
-                  onChange={(e) => setSortBy(e.target.value as SortOption)}
-                  style={{ background: 'var(--card-bg)', color: 'var(--text-main)', border: '1px solid var(--border)', padding: '6px 12px', borderRadius: '10px', fontSize: '0.85rem', outline: 'none' }}
-                >
-                  <option value="price_asc">Menor Preço</option>
-                  <option value="price_desc">Maior Preço</option>
-                  <option value="name_asc">Nome (A-Z)</option>
-                </select>
+              <div className="flex items-center gap-4">
+                {/* Alternador de Visualização */}
+                <div style={{ display: 'flex', background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '4px' }}>
+                  <button 
+                    onClick={() => setViewMode('grid')}
+                    className={`btn-icon ${viewMode === 'grid' ? 'active' : ''}`}
+                    title="Ver em blocos"
+                  >
+                    <LayoutGrid size={18} />
+                  </button>
+                  <button 
+                    onClick={() => setViewMode('list')}
+                    className={`btn-icon ${viewMode === 'list' ? 'active' : ''}`}
+                    title="Ver em lista"
+                  >
+                    <List size={18} />
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <ArrowUpDown size={16} color="var(--text-muted)" />
+                  <select 
+                    value={sortBy} 
+                    onChange={(e) => setSortBy(e.target.value as SortOption)}
+                    style={{ background: 'var(--card-bg)', color: 'var(--text-main)', border: '1px solid var(--border)', padding: '6px 12px', borderRadius: '10px', fontSize: '0.85rem', outline: 'none' }}
+                  >
+                    <option value="price_asc">Menor Preço</option>
+                    <option value="price_desc">Maior Preço</option>
+                    <option value="name_asc">Nome (A-Z)</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -369,9 +391,9 @@ function App() {
                 <p style={{color: 'var(--text-muted)', fontWeight: 600}}>Sincronizando ofertas locais...</p>
               </div>
             ) : filteredAndSortedResults.length > 0 ? (
-              <div className="product-grid">
+              <div className={viewMode === 'grid' ? "product-grid" : "product-list-view"}>
                 {filteredAndSortedResults.map(p => (
-                  <ProductCard key={p.id} product={p} onAdd={addToCart} />
+                  <ProductCard key={p.id} product={p} onAdd={addToCart} layout={viewMode} />
                 ))}
               </div>
             ) : (
@@ -722,6 +744,28 @@ function App() {
           align-items: center;
           justify-content: center;
           margin: 0 auto 20px;
+        }
+
+        .btn-icon {
+          background: none;
+          border: none;
+          padding: 8px;
+          border-radius: 8px;
+          cursor: pointer;
+          color: var(--text-muted);
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .btn-icon:hover { background: var(--bg); color: var(--text-main); }
+        .btn-icon.active { background: var(--primary-light); color: var(--primary); }
+
+        .product-list-view {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          margin-top: 30px;
         }
       `}</style>
     </div>

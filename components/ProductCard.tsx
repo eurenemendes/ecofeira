@@ -5,9 +5,10 @@ import { Plus, ShoppingBasket, Tag, TrendingDown, Check } from 'lucide-react';
 interface ProductCardProps {
   product: ProductOffer;
   onAdd: (product: ProductOffer) => void;
+  layout?: 'grid' | 'list';
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd, layout = 'grid' }) => {
   const [added, setAdded] = useState(false);
   const savings = product.originalPrice - product.price;
   const discountPercent = Math.round((savings / product.originalPrice) * 100);
@@ -17,6 +18,84 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd }) => {
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };
+
+  if (layout === 'list') {
+    return (
+      <div className="card animate" style={{ 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        padding: '12px 20px', 
+        gap: '20px',
+        minHeight: '100px'
+      }}>
+        {/* Badge de Promoção Compacto */}
+        {product.isPromo && (
+          <div style={{
+            position: 'absolute',
+            top: '-8px',
+            left: '12px',
+            background: 'var(--danger)',
+            color: 'white',
+            padding: '2px 8px',
+            borderRadius: '6px',
+            fontSize: '0.6rem',
+            fontWeight: 800,
+            zIndex: 2,
+          }}>
+            {discountPercent}% OFF
+          </div>
+        )}
+
+        <div style={{
+          background: 'var(--bg)',
+          width: '70px',
+          height: '70px',
+          borderRadius: '12px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0
+        }}>
+          <ShoppingBasket size={32} style={{opacity: 0.1, color: 'var(--primary)'}} />
+        </div>
+
+        <div style={{ flex: 1 }}>
+          <div className="flex items-center gap-3" style={{ marginBottom: '2px' }}>
+            <h4 style={{fontWeight: 700, fontSize: '0.95rem'}}>{product.name}</h4>
+            <span style={{fontSize: '0.6rem', background: 'var(--primary-light)', color: 'var(--primary)', padding: '2px 6px', borderRadius: '4px', fontWeight: 700, textTransform: 'uppercase'}}>{product.category}</span>
+          </div>
+          <p style={{fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600}}>{product.storeName}</p>
+        </div>
+
+        <div style={{ textAlign: 'right', minWidth: '120px' }}>
+          {product.isPromo && (
+             <span style={{fontSize: '0.75rem', textDecoration: 'line-through', color: 'var(--text-muted)', opacity: 0.7, display: 'block'}}>
+                R$ {product.originalPrice.toFixed(2).replace('.', ',')}
+             </span>
+          )}
+          <span style={{fontSize: '1.2rem', fontWeight: 800, color: product.isPromo ? 'var(--danger)' : 'var(--text-main)'}}>
+            R$ {product.price.toFixed(2).replace('.', ',')}
+          </span>
+        </div>
+
+        <button 
+          className={`btn ${added ? 'btn-success' : 'btn-primary'}`} 
+          style={{
+            padding: '10px', 
+            borderRadius: '12px',
+            background: added ? 'var(--primary)' : undefined,
+            minWidth: '44px',
+            height: '44px',
+            justifyContent: 'center'
+          }} 
+          onClick={handleAdd}
+          disabled={added}
+        >
+          {added ? <Check size={20} className="animate-pop" /> : <Plus size={20} />}
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="card" style={{ position: 'relative' }}>
