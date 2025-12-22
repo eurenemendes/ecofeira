@@ -1,14 +1,18 @@
-import React, { useMemo } from 'react';
-import { CartItem, CartOptimization } from '../types';
+import React, { useMemo, useState } from 'react';
+import { CartItem, CartOptimization, ProductOffer } from '../types';
 import { MOCK_STORES, STORE_PRICING_FACTORS, RAW_PRODUCTS } from '../constants';
-import { TrendingDown, MapPin, CheckCircle2, AlertCircle } from 'lucide-react';
+import { TrendingDown, MapPin, CheckCircle2, AlertCircle, Eye, X, Plus, Trash2 } from 'lucide-react';
 
 interface CartOptimizerProps {
   cart: CartItem[];
+  onAdd: (product: ProductOffer) => void;
+  onDecrement: (id: string) => void;
+  onRemove: (id: string) => void;
 }
 
-const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart }) => {
-  
+const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart, onAdd, onDecrement, onRemove }) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   const optimizedData: CartOptimization[] = useMemo(() => {
     if (cart.length === 0) return [];
 
@@ -20,7 +24,6 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart }) => {
       const targetStoreFactor = STORE_PRICING_FACTORS[store.id] || 1.0;
 
       cart.forEach(item => {
-        // Tenta encontrar o mesmo produto (pelo nome) neste supermercado específico no banco de dados
         const dbProduct = RAW_PRODUCTS.find(p => 
           p.produto === item.name && 
           p.supermercado === store.name
@@ -29,12 +32,9 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart }) => {
         let finalPrice: number;
 
         if (dbProduct) {
-          // Se encontrou no banco, usa o preço real (promocional ou normal)
           finalPrice = dbProduct.promocao ? (dbProduct.preco_promocional || dbProduct.preco_normal) : dbProduct.preco_normal;
           foundCount++;
         } else {
-          // Se não encontrou, faz uma estimativa inteligente baseada no fator do mercado
-          // Baseamos no preço que o usuário adicionou originalmente
           const sourceStoreFactor = STORE_PRICING_FACTORS[item.storeId] || 1.0;
           const estimatedBasePrice = item.price / sourceStoreFactor;
           finalPrice = estimatedBasePrice * targetStoreFactor;
@@ -67,6 +67,106 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart }) => {
 
   return (
     <div style={{ display: 'grid', gap: '24px', width: '100%' }}>
+      {/* Pop-up de Detalhes (Modal) */}
+      {isModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 2000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px'
+        }} onClick={() => setIsModalOpen(false)}>
+          <div style={{
+            background: 'var(--card-bg)',
+            width: '100%',
+            maxWidth: '540px',
+            borderRadius: '24px',
+            padding: '24px',
+            boxShadow: 'var(--shadow-lg)',
+            position: 'relative',
+            maxHeight: '80vh',
+            overflowY: 'auto'
+          }} onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center" style={{ marginBottom: '20px' }}>
+              <h4 style={{ fontWeight: 800, fontSize: '1.2rem', color: 'var(--text-main)' }}>Itens em {bestOption.storeName}</h4>
+              <button onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div style={{ display: 'grid', gap: '12px' }}>
+              {bestOption.items.map((item, idx) => (
+                <div key={idx} className="flex justify-between items-center" style={{ padding: '16px', background: 'var(--bg)', borderRadius: '16px', border: '1px solid var(--border)' }}>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)', marginBottom: '2px' }}>{item.name}</p>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>R$ {item.price.toFixed(2).replace('.', ',')} p/ un.</p>
+                  </div>
+                  
+                  <div className="flex flex-col items-end gap-3" style={{ minWidth: '160px' }}>
+                    <p style={{ fontWeight: 800, color: 'var(--primary)', fontSize: '1rem' }}>R$ {(item.price * item.quantity).toFixed(2).replace('.', ',')}</p>
+                    <div className="flex items-center gap-2">
+                       {/* Seletor de quantidade compacto */}
+                       <div style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          border: '1px solid var(--border)', 
+                          borderRadius: '8px', 
+                          background: 'var(--card-bg)', 
+                          overflow: 'hidden'
+                        }}>
+                          <button 
+                            onClick={() => onDecrement(item.id)}
+                            style={{ background: 'none', border: 'none', padding: '4px 10px', cursor: 'pointer', fontWeight: 700, color: 'var(--text-main)' }}
+                          >
+                            -
+                          </button>
+                          <span style={{ minWidth: '24px', textAlign: 'center', fontSize: '0.85rem', fontWeight: 800 }}>{item.quantity}</span>
+                          <button 
+                            onClick={() => onAdd(item)}
+                            style={{ background: 'none', border: 'none', padding: '4px 10px', cursor: 'pointer', fontWeight: 700, color: 'var(--text-main)' }}
+                          >
+                            +
+                          </button>
+                        </div>
+
+                        <button 
+                          onClick={() => onRemove(item.id)}
+                          style={{ 
+                            background: 'rgba(239, 68, 68, 0.1)', 
+                            color: 'var(--danger)', 
+                            border: 'none', 
+                            borderRadius: '8px', 
+                            padding: '6px', 
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                          title="Remover"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '2px solid var(--border)', textAlign: 'right' }}>
+               <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700 }}>VALOR ESTIMADO NO MERCADO</p>
+               <p style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--text-main)' }}>R$ {bestOption.totalPrice.toFixed(2).replace('.', ',')}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Card de Destaque - Banner de Melhor Opção */}
       <div style={{
         background: 'linear-gradient(135deg, #6fd4b2 0%, #4cae8d 100%)',
@@ -96,19 +196,44 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart }) => {
                {bestOption.storeName}
             </div>
             
-            <div style={{ 
-                display: 'inline-flex', 
-                alignItems: 'center', 
-                gap: '8px', 
-                fontSize: '0.75rem', 
-                background: 'rgba(255, 255, 255, 0.15)', 
-                padding: '6px 14px', 
-                borderRadius: '100px',
-                fontWeight: 600,
-                backdropFilter: 'blur(4px)'
-            }}>
-                <CheckCircle2 size={14} /> 
-                {totalCartItems - bestOption.missingItems} de {totalCartItems} itens confirmados no banco
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <div style={{ 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    gap: '8px', 
+                    fontSize: '0.75rem', 
+                    background: 'rgba(255, 255, 255, 0.15)', 
+                    padding: '6px 14px', 
+                    borderRadius: '100px',
+                    fontWeight: 600,
+                    backdropFilter: 'blur(4px)'
+                }}>
+                    <CheckCircle2 size={14} /> 
+                    {totalCartItems - bestOption.missingItems} de {totalCartItems} itens confirmados no banco
+                </div>
+
+                <button 
+                  onClick={() => setIsModalOpen(true)}
+                  style={{
+                    background: 'white',
+                    color: '#4cae8d',
+                    border: 'none',
+                    borderRadius: '100px',
+                    padding: '6px 14px',
+                    fontSize: '0.75rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                    transition: 'transform 0.2s'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+                  onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                >
+                  <Eye size={14} /> Ver Itens
+                </button>
             </div>
           </div>
           

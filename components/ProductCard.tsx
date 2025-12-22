@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ProductOffer } from '../types';
-import { Plus, ShoppingBasket, Tag, TrendingDown } from 'lucide-react';
+import { Plus, ShoppingBasket, Tag, TrendingDown, Check } from 'lucide-react';
 
 interface ProductCardProps {
   product: ProductOffer;
@@ -8,8 +8,15 @@ interface ProductCardProps {
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd }) => {
+  const [added, setAdded] = useState(false);
   const savings = product.originalPrice - product.price;
   const discountPercent = Math.round((savings / product.originalPrice) * 100);
+
+  const handleAdd = () => {
+    onAdd(product);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 2000);
+  };
 
   return (
     <div className="card" style={{ position: 'relative' }}>
@@ -91,11 +98,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd }) => {
               </span>
             </div>
             <button 
-              className="btn btn-primary" 
-              style={{padding: '8px 12px', borderRadius: '12px'}} 
-              onClick={() => onAdd(product)}
+              className={`btn ${added ? 'btn-success' : 'btn-primary'}`} 
+              style={{
+                padding: '8px 12px', 
+                borderRadius: '12px',
+                background: added ? 'var(--primary)' : undefined,
+                transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+              }} 
+              onClick={handleAdd}
+              disabled={added}
             >
-              <Plus size={20} />
+              {added ? <Check size={20} className="animate-pop" /> : <Plus size={20} />}
             </button>
           </div>
         </div>

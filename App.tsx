@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Search, ShoppingCart, Store as StoreIcon, Trash2, History, X, Moon, Sun, Filter, ArrowUpDown, Tag, ArrowUp, ChevronRight } from 'lucide-react';
+import { Search, ShoppingCart, Store as StoreIcon, Trash2, History, X, Moon, Sun, Filter, ArrowUpDown, Tag, ArrowUp, ChevronRight, Package, Check } from 'lucide-react';
 import { searchProductsWithGemini } from './services/geminiService';
 import { ProductOffer, CartItem, AppView } from './types';
 import { INITIAL_SUGGESTIONS, MOCK_STORES, RAW_PRODUCTS } from './constants';
@@ -8,10 +8,15 @@ import CartOptimizer from './components/CartOptimizer';
 
 type SortOption = 'price_asc' | 'price_desc' | 'name_asc';
 
+interface SuggestionItem {
+  name: string;
+  type: 'product' | 'category';
+}
+
 function App() {
   const [view, setView] = useState<AppView>(AppView.HOME);
   const [query, setQuery] = useState('');
-  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<ProductOffer[]>([]);
@@ -74,22 +79,26 @@ function App() {
   useEffect(() => { localStorage.setItem('ecofeira_history', JSON.stringify(searchHistory)); }, [searchHistory]);
   useEffect(() => { localStorage.setItem('ecofeira_cart', JSON.stringify(cart)); }, [cart]);
 
-  // Lógica de Sugestões em Tempo Real
+  // Lógica de Sugestões Aprimorada
   const handleInputChange = (val: string) => {
     setQuery(val);
-    if (val.trim().length > 1) {
+    if (val.trim().length > 0) {
       const lowerVal = val.toLowerCase();
-      // Filtra produtos e categorias que contenham o termo
-      const matches = RAW_PRODUCTS
-        .filter(p => 
-          p.produto.toLowerCase().includes(lowerVal) || 
-          p.categoria.toLowerCase().includes(lowerVal)
-        )
-        .map(p => p.produto)
-        .filter((value, index, self) => self.indexOf(value) === index) // Unique
-        .slice(0, 6);
       
-      setSuggestions(matches);
+      // Busca categorias
+      const categoryMatches: SuggestionItem[] = categories
+        .filter(cat => cat.toLowerCase().includes(lowerVal))
+        .map(name => ({ name, type: 'category' }));
+
+      // Busca produtos únicos
+      const productMatches: SuggestionItem[] = Array.from(new Set(RAW_PRODUCTS
+        .filter(p => p.produto.toLowerCase().includes(lowerVal))
+        .map(p => p.produto)))
+        .map(name => ({ name, type: 'product' }));
+      
+      const combined = [...categoryMatches, ...productMatches].slice(0, 8);
+      
+      setSuggestions(combined);
       setShowSuggestions(true);
     } else {
       setSuggestions([]);
@@ -97,7 +106,7 @@ function App() {
     }
   };
 
-  const handleSearch = async (e?: React.FormEvent, queryOverride?: string) => {
+  const handleSearch = async (e?: React.FormEvent, queryOverride?: string, type?: 'product' | 'category') => {
     if (e) e.preventDefault();
     const term = queryOverride || query;
     if (!term.trim()) return;
@@ -109,7 +118,7 @@ function App() {
     setView(AppView.SEARCH);
     
     // Reset filtros ao buscar novo termo
-    setSelectedCategory(null);
+    setSelectedCategory(type === 'category' ? term : null);
     setSelectedStore(null);
     setOnlyPromos(false);
 
@@ -153,29 +162,45 @@ function App() {
     });
   }, []);
 
+  const decrementInCart = useCallback((id: string) => {
+    setCart(prev => prev.map(item => item.id === id ? { ...item, quantity: Math.max(1, item.quantity - 1) } : item));
+  }, []);
+
+  const removeFromCart = useCallback((id: string) => {
+    setCart(prev => prev.filter(item => item.id !== id));
+  }, []);
+
   const totalItems = useMemo(() => cart.reduce((acc, item) => acc + item.quantity, 0), [cart]);
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Componente de lista de sugestões
-  const SuggestionsList = ({ list }: { list: string[] }) => (
+  // Componente de lista de sugestões enriquecida
+  const SuggestionsList = ({ list }: { list: SuggestionItem[] }) => (
     <div className="suggestions-dropdown animate">
+      <div style={{ padding: '8px 12px', fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', borderBottom: '1px solid var(--border)', marginBottom: '4px' }}>
+        Sugestões no Banco
+      </div>
       {list.length > 0 ? (
         list.map((item, idx) => (
           <div 
             key={idx} 
             className="suggestion-item"
-            onClick={() => handleSearch(undefined, item)}
+            onClick={() => handleSearch(undefined, item.name, item.type)}
           >
-            <Search size={14} className="suggestion-icon" />
-            <span className="suggestion-text">{item}</span>
+            <div className="suggestion-icon-wrapper">
+              {item.type === 'category' ? <Tag size={14} /> : <Package size={14} />}
+            </div>
+            <div className="suggestion-content">
+              <span className="suggestion-text">{item.name}</span>
+              <span className="suggestion-type-label">{item.type === 'category' ? 'Categoria' : 'Produto'}</span>
+            </div>
             <ChevronRight size={14} className="suggestion-chevron" />
           </div>
         ))
       ) : (
-        <div className="suggestion-item-empty">Sem sugestões para "{query}"</div>
+        <div className="suggestion-item-empty">Sem resultados para "{query}"</div>
       )}
     </div>
   );
@@ -191,7 +216,7 @@ function App() {
 
           {view !== AppView.HOME && (
             <div className="search-container" ref={headerSearchRef}>
-              <form onSubmit={handleSearch}>
+              <form onSubmit={(e) => handleSearch(e)}>
                 <Search className="search-icon" size={18} />
                 <input 
                   type="text" 
@@ -199,7 +224,7 @@ function App() {
                   placeholder="Buscar produtos..." 
                   value={query}
                   onChange={(e) => handleInputChange(e.target.value)}
-                  onFocus={() => query.length > 1 && setShowSuggestions(true)}
+                  onFocus={() => query.length > 0 && setShowSuggestions(true)}
                 />
               </form>
               {showSuggestions && <SuggestionsList list={suggestions} />}
@@ -212,7 +237,7 @@ function App() {
             </button>
             <button className="btn btn-ghost" onClick={() => setView(AppView.CART)} style={{ position: 'relative', padding: '10px' }}>
               <ShoppingCart size={20} />
-              {totalItems > 0 && <span className="badge-count">{totalItems}</span>}
+              {totalItems > 0 && <span className="badge-count animate-pop">{totalItems}</span>}
             </button>
           </div>
         </div>
@@ -230,14 +255,14 @@ function App() {
             
             <div style={{position: 'relative', marginBottom: '40px'}} ref={searchRef}>
                <Search style={{position: 'absolute', left: '20px', top: '18px', color: 'var(--primary)', zIndex: 10}} size={24} />
-               <form onSubmit={handleSearch}>
+               <form onSubmit={(e) => handleSearch(e)}>
                 <input 
                   type="text" 
                   placeholder="O que você precisa hoje?" 
                   style={{width: '100%', padding: '18px 120px 18px 55px', borderRadius: '20px', border: '2px solid var(--border)', background: 'var(--card-bg)', color: 'var(--text-main)', fontSize: '1.1rem', outline: 'none', boxShadow: 'var(--shadow-md)', position: 'relative', zIndex: 5}}
                   value={query}
                   onChange={(e) => handleInputChange(e.target.value)}
-                  onFocus={() => query.length > 1 && setShowSuggestions(true)}
+                  onFocus={() => query.length > 0 && setShowSuggestions(true)}
                 />
                 <button type="submit" className="btn btn-primary" style={{position: 'absolute', right: '8px', top: '8px', bottom: '8px', borderRadius: '14px', zIndex: 10}}>
                   Buscar
@@ -263,7 +288,7 @@ function App() {
             )}
 
             <div style={{ textAlign: 'left' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '12px' }}>SUGESTÕES</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '12px' }}>SUGESTÕES POPULARES</span>
               <div className="flex gap-2" style={{flexWrap: 'wrap'}}>
                 {INITIAL_SUGGESTIONS.map(s => (
                   <button key={s} onClick={() => handleSearch(undefined, s)} className="btn btn-ghost" style={{fontSize: '0.8rem', padding: '6px 14px', borderRadius: '10px'}}>{s}</button>
@@ -335,7 +360,7 @@ function App() {
             {isSearching ? (
               <div style={{ textAlign: 'center', padding: '80px 0' }}>
                 <div className="logo-icon animate" style={{ margin: '0 auto 20px', width: '50px', height: '50px' }}><StoreIcon size={24} /></div>
-                <p style={{color: 'var(--text-muted)', fontWeight: 600}}>Atualizando ofertas...</p>
+                <p style={{color: 'var(--text-muted)', fontWeight: 600}}>Sincronizando ofertas locais...</p>
               </div>
             ) : filteredAndSortedResults.length > 0 ? (
               <div className="product-grid">
@@ -345,7 +370,7 @@ function App() {
               </div>
             ) : (
               <div style={{ textAlign: 'center', padding: '60px', border: '2px dashed var(--border)', borderRadius: '20px' }}>
-                <p style={{ color: 'var(--text-muted)' }}>Nenhum produto encontrado com os filtros aplicados.</p>
+                <p style={{ color: 'var(--text-muted)' }}>Nenhum produto encontrado. Tente ajustar os filtros ou pesquisar outro termo.</p>
                 <button className="btn btn-ghost" style={{ marginTop: '16px' }} onClick={() => { setSelectedCategory(null); setSelectedStore(null); setOnlyPromos(false); }}>Limpar Filtros</button>
               </div>
             )}
@@ -374,27 +399,104 @@ function App() {
                   {cart.map(item => (
                     <div key={item.id} className="flex justify-between items-center" style={{padding: '15px 0', borderBottom: '1px solid var(--border)'}}>
                       <div>
-                        <h4 style={{fontWeight: 700}}>{item.name}</h4>
+                        <h4 style={{fontWeight: 700, color: 'var(--text-main)'}}>{item.name}</h4>
                         <p style={{fontSize: '0.8rem', color: 'var(--text-muted)'}}>{item.storeName} • {item.quantity} un.</p>
                       </div>
                       <div style={{textAlign: 'right'}}>
-                        <p style={{fontWeight: 800, color: 'var(--primary)', fontSize: '1.1rem'}}>R$ {(item.price * item.quantity).toFixed(2)}</p>
-                        <div className="flex gap-2" style={{ marginTop: '4px' }}>
-                           <button onClick={() => setCart(prev => prev.map(i => i.id === item.id ? {...i, quantity: Math.max(1, i.quantity - 1)} : i))} style={{ background: 'var(--bg)', color: 'var(--text-main)', border: '1px solid var(--border)', borderRadius: '4px', padding: '2px 8px', cursor: 'pointer' }}>-</button>
-                           <button onClick={() => setCart(prev => prev.map(i => i.id === item.id ? {...i, quantity: i.quantity + 1} : i))} style={{ background: 'var(--bg)', color: 'var(--text-main)', border: '1px solid var(--border)', borderRadius: '4px', padding: '2px 8px', cursor: 'pointer' }}>+</button>
-                           <button onClick={() => setCart(prev => prev.filter(i => i.id !== item.id))} style={{ color: 'var(--danger)', background: 'none', border: 'none', cursor: 'pointer', marginLeft: '8px' }}><Trash2 size={14} /></button>
+                        <p style={{fontWeight: 800, color: 'var(--primary)', fontSize: '1.2rem', marginBottom: '8px'}}>R$ {(item.price * item.quantity).toFixed(2).replace('.', ',')}</p>
+                        <div className="flex items-center justify-end gap-3">
+                          <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            border: '1px solid var(--border)', 
+                            borderRadius: '10px', 
+                            background: 'var(--bg)', 
+                            overflow: 'hidden',
+                            boxShadow: 'var(--shadow-sm)'
+                          }}>
+                            <button 
+                              onClick={() => decrementInCart(item.id)} 
+                              style={{ 
+                                background: 'none', 
+                                color: 'var(--text-main)', 
+                                border: 'none', 
+                                padding: '6px 14px', 
+                                cursor: 'pointer', 
+                                fontSize: '1.1rem', 
+                                fontWeight: 700, 
+                                display: 'flex', 
+                                alignItems: 'center',
+                                transition: 'background 0.2s'
+                              }}
+                              className="qty-btn"
+                            >
+                              -
+                            </button>
+                            <span style={{ 
+                              background: 'var(--card-bg)', 
+                              color: 'var(--text-main)', 
+                              padding: '6px 0', 
+                              minWidth: '40px', 
+                              textAlign: 'center', 
+                              fontWeight: 800, 
+                              fontSize: '0.95rem',
+                              borderLeft: '1px solid var(--border)',
+                              borderRight: '1px solid var(--border)'
+                            }}>
+                              {item.quantity}
+                            </span>
+                            <button 
+                              onClick={() => addToCart(item)} 
+                              style={{ 
+                                background: 'none', 
+                                color: 'var(--text-main)', 
+                                border: 'none', 
+                                padding: '6px 14px', 
+                                cursor: 'pointer', 
+                                fontSize: '1.1rem', 
+                                fontWeight: 700, 
+                                display: 'flex', 
+                                alignItems: 'center',
+                                transition: 'background 0.2s'
+                              }}
+                              className="qty-btn"
+                            >
+                              +
+                            </button>
+                          </div>
+                          <button 
+                            onClick={() => removeFromCart(item.id)} 
+                            style={{ 
+                              color: 'var(--danger)', 
+                              background: 'rgba(239, 68, 68, 0.08)', 
+                              border: 'none', 
+                              borderRadius: '8px',
+                              padding: '8px',
+                              cursor: 'pointer', 
+                              transition: 'all 0.2s'
+                            }}
+                            className="delete-btn"
+                            title="Remover item"
+                          >
+                            <Trash2 size={18} />
+                          </button>
                         </div>
                       </div>
                     </div>
                   ))}
                   <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '2px solid var(--border)', textAlign: 'right' }}>
                     <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700 }}>VALOR TOTAL ESTIMADO</p>
-                    <p style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                      R$ {cart.reduce((acc, item) => acc + (item.price * item.quantity), 0).toFixed(2)}
+                    <p style={{ fontSize: '2.4rem', fontWeight: 900, color: 'var(--text-main)' }}>
+                      R$ {cart.reduce((acc, item) => acc + (item.price * item.quantity), 0).toFixed(2).replace('.', ',')}
                     </p>
                   </div>
                 </div>
-                <CartOptimizer cart={cart} />
+                <CartOptimizer 
+                  cart={cart} 
+                  onAdd={addToCart} 
+                  onDecrement={decrementInCart} 
+                  onRemove={removeFromCart} 
+                />
               </div>
             )}
           </div>
@@ -413,20 +515,31 @@ function App() {
       <style>{`
         .badge-count {
           position: absolute; top: -5px; right: -5px; background: var(--primary); color: white;
-          border-radius: 50%; width: 18px; height: 18px; font-size: 0.65rem;
-          display: flex; align-items: center; justify-content: center; fontWeight: bold;
+          border-radius: 50%; width: 20px; height: 20px; font-size: 0.7rem;
+          display: flex; align-items: center; justify-content: center; font-weight: 800;
+          box-shadow: 0 0 0 2px var(--card-bg);
         }
+
+        @keyframes pop {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.3); }
+          100% { transform: scale(1); }
+        }
+        .animate-pop { animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         
+        .qty-btn:hover { background: rgba(0,0,0,0.05); }
+        .delete-btn:hover { background: rgba(239, 68, 68, 0.15); transform: scale(1.05); }
+
         .suggestions-dropdown {
           position: absolute;
           top: calc(100% + 8px);
           left: 0;
           right: 0;
           background: var(--card-bg);
-          backdrop-filter: blur(12px);
+          backdrop-filter: blur(20px);
           border: 1px solid var(--border);
-          border-radius: 16px;
-          box-shadow: var(--shadow-lg);
+          border-radius: 20px;
+          box-shadow: 0 10px 40px -10px rgba(0,0,0,0.2);
           z-index: 1000;
           overflow: hidden;
           padding: 8px;
@@ -435,37 +548,59 @@ function App() {
         .suggestion-item {
           display: flex;
           align-items: center;
-          gap: 12px;
-          padding: 12px 16px;
+          gap: 14px;
+          padding: 10px 14px;
           cursor: pointer;
-          border-radius: 10px;
-          transition: all 0.2s;
+          border-radius: 12px;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .suggestion-item:hover {
           background: var(--primary-light);
-          color: var(--primary);
+          transform: translateX(4px);
         }
 
-        .suggestion-icon {
+        .suggestion-icon-wrapper {
+          width: 32px;
+          height: 32px;
+          background: var(--bg);
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           color: var(--text-muted);
-          flex-shrink: 0;
+          transition: all 0.2s;
         }
 
-        .suggestion-item:hover .suggestion-icon {
-          color: var(--primary);
+        .suggestion-item:hover .suggestion-icon-wrapper {
+          background: var(--primary);
+          color: white;
+        }
+
+        .suggestion-content {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          text-align: left;
         }
 
         .suggestion-text {
-          flex: 1;
-          font-size: 0.9rem;
-          font-weight: 500;
-          text-align: left;
+          font-size: 0.95rem;
+          font-weight: 700;
+          color: var(--text-main);
+        }
+
+        .suggestion-type-label {
+          font-size: 0.65rem;
+          color: var(--text-muted);
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
         }
 
         .suggestion-chevron {
           opacity: 0;
-          transform: translateX(-5px);
+          transform: translateX(-10px);
           transition: all 0.2s;
           color: var(--primary);
         }
@@ -476,10 +611,11 @@ function App() {
         }
 
         .suggestion-item-empty {
-          padding: 12px;
-          font-size: 0.85rem;
+          padding: 24px;
+          font-size: 0.9rem;
           color: var(--text-muted);
           text-align: center;
+          font-style: italic;
         }
 
         .btn-back-to-top {
