@@ -1,10 +1,19 @@
 import React, { useMemo, useState } from 'react';
-import { CartItem, CartOptimization, ProductOffer } from '../types';
+import { CartItem, ProductOffer } from '../types';
 import { MOCK_STORES, STORE_PRICING_FACTORS, RAW_PRODUCTS } from '../constants';
 import { TrendingDown, MapPin, CheckCircle2, AlertCircle, Eye, X, Plus, Trash2 } from 'lucide-react';
 
 interface OptimizedCartItem extends CartItem {
   isConfirmed: boolean;
+}
+
+interface StoreOptimization {
+  storeId: string;
+  storeName: string;
+  totalPrice: number;
+  confirmedTotal: number;
+  missingItems: number;
+  items: OptimizedCartItem[];
 }
 
 interface CartOptimizerProps {
@@ -15,7 +24,7 @@ interface CartOptimizerProps {
 }
 
 const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart, onAdd, onDecrement, onRemove }) => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null);
 
   const optimizedData = useMemo(() => {
     if (cart.length === 0) return [];
@@ -69,19 +78,26 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart, onAdd, onDecrement,
     }).sort((a, b) => a.totalPrice - b.totalPrice);
   }, [cart]);
 
+  const viewingStore = useMemo(() => {
+    if (!selectedStoreId) return null;
+    return optimizedData.find(opt => opt.storeId === selectedStoreId);
+  }, [selectedStoreId, optimizedData]);
+
+  const confirmedViewingItems = useMemo(() => {
+    if (!viewingStore) return [];
+    return viewingStore.items.filter(item => item.isConfirmed);
+  }, [viewingStore]);
+
   if (cart.length === 0) return null;
 
   const bestOption = optimizedData[0];
   const worstOption = optimizedData[optimizedData.length - 1];
   const totalCartItems = cart.length;
 
-  // Filtrar apenas os itens que pertencem de fato ao mercado (estão no banco)
-  const confirmedItems = bestOption.items.filter(item => item.isConfirmed);
-
   return (
     <div style={{ display: 'grid', gap: '24px', width: '100%' }}>
       {/* Pop-up de Detalhes (Modal) */}
-      {isModalOpen && (
+      {viewingStore && (
         <div style={{
           position: 'fixed',
           top: 0,
@@ -89,15 +105,15 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart, onAdd, onDecrement,
           right: 0,
           bottom: 0,
           backgroundColor: 'rgba(0, 0, 0, 0.4)',
-          backdropFilter: 'blur(6px)',
+          backdropFilter: 'blur(8px)',
           zIndex: 2000,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           padding: '20px'
-        }} onClick={() => setIsModalOpen(false)}>
+        }} onClick={() => setSelectedStoreId(null)}>
           <div style={{
-            background: 'var(--bg)',
+            background: 'var(--card-bg)',
             width: '100%',
             maxWidth: '560px',
             borderRadius: '28px',
@@ -105,29 +121,32 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart, onAdd, onDecrement,
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
             position: 'relative',
             maxHeight: '85vh',
-            overflowY: 'auto'
+            overflowY: 'auto',
+            border: '1px solid var(--border)'
           }} onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center" style={{ marginBottom: '24px' }}>
               <h4 style={{ fontWeight: 800, fontSize: '1.25rem', color: 'var(--text-main)' }}>
-                Itens em <span style={{ color: 'var(--primary)' }}>{bestOption.storeName}</span>
+                Itens em <span style={{ color: 'var(--primary)' }}>{viewingStore.storeName}</span>
               </h4>
-              <button onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px' }}>
+              <button onClick={() => setSelectedStoreId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px' }}>
                 <X size={24} />
               </button>
             </div>
             
-            <div style={{ display: 'grid', gap: '12px' }}>
-              {confirmedItems.length > 0 ? (
-                confirmedItems.map((item, idx) => (
+            {confirmedViewingItems.length > 0 ? (
+              <div style={{ display: 'grid', gap: '12px' }}>
+                {confirmedViewingItems.map((item, idx) => (
                   <div key={idx} className="flex justify-between items-center" style={{ 
                     padding: '16px', 
-                    background: 'var(--card-bg)', 
+                    background: 'var(--bg)', 
                     borderRadius: '18px', 
                     border: '1px solid var(--border)',
                     boxShadow: 'var(--shadow-sm)'
                   }}>
                     <div style={{ flex: 1 }}>
-                      <p style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-main)', marginBottom: '2px' }}>{item.name}</p>
+                      <p style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-main)', marginBottom: '2px' }}>
+                        {item.name}
+                      </p>
                       <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>R$ {item.price.toFixed(2).replace('.', ',')} p/ un.</p>
                     </div>
                     
@@ -142,19 +161,19 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart, onAdd, onDecrement,
                           alignItems: 'center', 
                           border: '1px solid var(--border)', 
                           borderRadius: '10px', 
-                          background: 'var(--bg)', 
+                          background: 'var(--card-bg)', 
                           overflow: 'hidden'
                         }}>
                           <button 
                             onClick={() => onDecrement(item.id)}
-                            style={{ background: 'none', border: 'none', padding: '6px 12px', cursor: 'pointer', fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)' }}
+                            style={{ background: 'none', border: 'none', padding: '6px 10px', cursor: 'pointer', fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)' }}
                           >
                             -
                           </button>
-                          <span style={{ minWidth: '28px', textAlign: 'center', fontSize: '0.9rem', fontWeight: 800 }}>{item.quantity}</span>
+                          <span style={{ minWidth: '24px', textAlign: 'center', fontSize: '0.9rem', fontWeight: 800 }}>{item.quantity}</span>
                           <button 
                             onClick={() => onAdd(item)}
-                            style={{ background: 'none', border: 'none', padding: '6px 12px', cursor: 'pointer', fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)' }}
+                            style={{ background: 'none', border: 'none', padding: '6px 10px', cursor: 'pointer', fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)' }}
                           >
                             +
                           </button>
@@ -174,22 +193,28 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart, onAdd, onDecrement,
                             justifyContent: 'center'
                           }}
                         >
-                          <Trash2 size={18} />
+                          <Trash2 size={16} />
                         </button>
                       </div>
                     </div>
                   </div>
-                ))
-              ) : (
-                <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-                  Nenhum item deste mercado encontrado no banco de dados.
-                </div>
-              )}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
+                <AlertCircle size={40} style={{ opacity: 0.3, marginBottom: '12px' }} />
+                <p>Nenhum item da sua lista foi encontrado neste supermercado.</p>
+              </div>
+            )}
 
             <div style={{ marginTop: '28px', paddingTop: '20px', borderTop: '2px solid var(--border)', textAlign: 'right' }}>
-               <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>VALOR NESTE MERCADO</p>
-               <p style={{ fontSize: '2.4rem', fontWeight: 900, color: 'var(--text-main)' }}>R$ {bestOption.confirmedTotal.toFixed(2).replace('.', ',')}</p>
+               <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>VALOR TOTAL REGISTRADO</p>
+               <p style={{ fontSize: '2.4rem', fontWeight: 900, color: 'var(--text-main)' }}>R$ {viewingStore.confirmedTotal.toFixed(2).replace('.', ',')}</p>
+               {viewingStore.missingItems > 0 && (
+                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic', marginTop: '4px' }}>
+                   * Exibindo {confirmedViewingItems.length} de {totalCartItems} itens.
+                 </p>
+               )}
             </div>
           </div>
         </div>
@@ -241,7 +266,7 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart, onAdd, onDecrement,
                 </div>
 
                 <button 
-                  onClick={() => setIsModalOpen(true)}
+                  onClick={() => setSelectedStoreId(bestOption.storeId)}
                   style={{
                     background: 'white',
                     color: '#4cae8d',
@@ -343,17 +368,46 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart, onAdd, onDecrement,
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: '1.8rem',
-                    background: 'var(--card-bg)',
+                    background: 'var(--bg)',
                     border: '1px solid var(--border)',
                     boxShadow: 'var(--shadow-sm)'
                   }}>
                       {storeInfo?.logo}
                   </div>
                   <div>
-                      <h5 style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--text-main)', marginBottom: '2px' }}>
-                        {opt.storeName}
-                      </h5>
                       <div className="flex items-center gap-3">
+                        <h5 style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--text-main)' }}>
+                          {opt.storeName}
+                        </h5>
+                        <button 
+                          onClick={() => setSelectedStoreId(opt.storeId)}
+                          style={{
+                            background: 'var(--primary-light)',
+                            color: 'var(--primary)',
+                            border: '1px solid var(--primary)',
+                            borderRadius: '8px',
+                            padding: '2px 8px',
+                            fontSize: '0.65rem',
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            transition: 'all 0.2s'
+                          }}
+                          onMouseEnter={e => {
+                            e.currentTarget.style.background = 'var(--primary)';
+                            e.currentTarget.style.color = 'white';
+                          }}
+                          onMouseLeave={e => {
+                            e.currentTarget.style.background = 'var(--primary-light)';
+                            e.currentTarget.style.color = 'var(--primary)';
+                          }}
+                        >
+                          <Eye size={12} /> Itens
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-3" style={{ marginTop: '2px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                               <MapPin size={12} />
                               {storeInfo?.distance}
