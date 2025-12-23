@@ -7,6 +7,7 @@ import { INITIAL_SUGGESTIONS, MOCK_STORES, RAW_PRODUCTS } from './constants';
 import ProductCard from './components/ProductCard';
 import CartOptimizer from './components/CartOptimizer';
 import BannerCarousel from './components/BannerCarousel';
+import InlineAdBanner from './components/InlineAdBanner';
 
 type SortOption = 'price_asc' | 'price_desc' | 'name_asc';
 type ViewMode = 'grid' | 'list';
@@ -14,6 +15,13 @@ type ViewMode = 'grid' | 'list';
 interface SuggestionItem {
   name: string;
   type: 'product' | 'category';
+}
+
+// Interface auxiliar para renderização mista de produtos e anúncios
+interface RenderItem {
+  type: 'product' | 'ad';
+  data?: ProductOffer;
+  id: string;
 }
 
 function App() {
@@ -173,6 +181,22 @@ function App() {
     return results;
   }, [searchResults, selectedCategory, selectedStore, onlyPromos, sortBy, view]);
 
+  // Lógica para injetar o anúncio na segunda posição da grade/lista
+  const itemsToRender = useMemo<RenderItem[]>(() => {
+    const products: RenderItem[] = filteredAndSortedResults.map(p => ({
+      type: 'product',
+      data: p,
+      id: p.id
+    }));
+
+    if (products.length >= 1) {
+      // Inserir anúncio após o primeiro item (segunda posição, index 1)
+      products.splice(1, 0, { type: 'ad', id: 'inline-ad-banner' });
+    }
+
+    return products;
+  }, [filteredAndSortedResults]);
+
   const addToCart = useCallback((product: ProductOffer) => {
     setCart(prev => {
       const existing = prev.find(item => item.id === product.id);
@@ -330,49 +354,33 @@ function App() {
           </div>
         )}
 
-        {view === AppView.STORE_DETAIL && selectedStoreData && (
+        {(view === AppView.STORE_DETAIL || view === AppView.SEARCH) && (
           <div className="animate">
-            <div className="flex items-center gap-4" style={{ marginBottom: '30px' }}>
-              <button className="btn btn-ghost" onClick={() => setView(AppView.STORES)} style={{padding: '10px'}}><ArrowLeft size={20} /></button>
-              <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
-                <div style={{fontSize: '2.5rem', width: '60px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                  {renderLogo(selectedStoreData.logo, '60px', selectedStoreData.name)}
-                </div>
-                <div>
-                  <h2 style={{fontWeight: 800, fontSize: '2rem'}}>{selectedStoreData.name}</h2>
-                  <div style={{color: 'var(--text-muted)', fontSize: '0.9rem'}}>{selectedStoreData.distance} • Todos os produtos</div>
+            {view === AppView.STORE_DETAIL && selectedStoreData && (
+              <div className="flex items-center gap-4" style={{ marginBottom: '30px' }}>
+                <button className="btn btn-ghost" onClick={() => setView(AppView.STORES)} style={{padding: '10px'}}><ArrowLeft size={20} /></button>
+                <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
+                  <div style={{fontSize: '2.5rem', width: '60px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                    {renderLogo(selectedStoreData.logo, '60px', selectedStoreData.name)}
+                  </div>
+                  <div>
+                    <h2 style={{fontWeight: 800, fontSize: '2rem'}}>{selectedStoreData.name}</h2>
+                    <div style={{color: 'var(--text-muted)', fontSize: '0.9rem'}}>{selectedStoreData.distance} • Todos os produtos</div>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
+
+            {view === AppView.SEARCH && (
+              <div className="flex items-center justify-between" style={{ marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
+                <div className="flex items-center gap-2">
+                  <button className="btn btn-ghost" onClick={() => setView(AppView.HOME)} style={{ padding: '8px' }}><X size={20} /></button>
+                  <h2 style={{fontWeight: 800, fontSize: '1.25rem'}}>{filteredAndSortedResults.length} resultados para "{query}"</h2>
+                </div>
+              </div>
+            )}
 
             <div className="flex items-center justify-between" style={{ marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
-              <h3 style={{fontWeight: 700}}>{filteredAndSortedResults.length} produtos disponíveis</h3>
-              <div className="flex items-center gap-4">
-                <div style={{ display: 'flex', background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '4px' }}>
-                  <button onClick={() => setViewMode('grid')} className={`btn-icon ${viewMode === 'grid' ? 'active' : ''}`} title="Ver em blocos"><LayoutGrid size={18} /></button>
-                  <button onClick={() => setViewMode('list')} className={`btn-icon ${viewMode === 'list' ? 'active' : ''}`} title="Ver em lista"><List size={18} /></button>
-                </div>
-                <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortOption)} style={{ background: 'var(--card-bg)', color: 'var(--text-main)', border: '1px solid var(--border)', padding: '6px 12px', borderRadius: '10px', fontSize: '0.85rem', outline: 'none' }}>
-                  <option value="price_asc">Menor Preço</option>
-                  <option value="price_desc">Major Preço</option>
-                  <option value="name_asc">Nome (A-Z)</option>
-                </select>
-              </div>
-            </div>
-
-            <div className={viewMode === 'grid' ? "product-grid" : "product-list-view"}>
-              {filteredAndSortedResults.map(p => (<ProductCard key={p.id} product={p} onAdd={addToCart} layout={viewMode} />))}
-            </div>
-          </div>
-        )}
-
-        {view === AppView.SEARCH && (
-          <div className="animate">
-            <div className="flex items-center justify-between" style={{ marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
-              <div className="flex items-center gap-2">
-                <button className="btn btn-ghost" onClick={() => setView(AppView.HOME)} style={{ padding: '8px' }}><X size={20} /></button>
-                <h2 style={{fontWeight: 800, fontSize: '1.25rem'}}>{filteredAndSortedResults.length} resultados para "{query}"</h2>
-              </div>
               <div className="flex items-center gap-4">
                 <div style={{ display: 'flex', background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '4px' }}>
                   <button onClick={() => setViewMode('grid')} className={`btn-icon ${viewMode === 'grid' ? 'active' : ''}`} title="Ver em blocos"><LayoutGrid size={18} /></button>
@@ -382,27 +390,37 @@ function App() {
                   <ArrowUpDown size={16} color="var(--text-muted)" />
                   <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortOption)} style={{ background: 'var(--card-bg)', color: 'var(--text-main)', border: '1px solid var(--border)', padding: '6px 12px', borderRadius: '10px', fontSize: '0.85rem', outline: 'none' }}>
                     <option value="price_asc">Menor Preço</option>
-                    <option value="price_desc">Major Preço</option>
+                    <option value="price_desc">Maior Preço</option>
                     <option value="name_asc">Nome (A-Z)</option>
                   </select>
                 </div>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '24px', overflowX: 'auto', paddingBottom: '8px', scrollbarWidth: 'none' }}>
-              <button onClick={() => setOnlyPromos(!onlyPromos)} className={`btn ${onlyPromos ? 'btn-primary' : 'btn-ghost'}`} style={{ fontSize: '0.75rem', padding: '6px 12px', whiteSpace: 'nowrap' }}><Tag size={14} /> Em Promoção</button>
-              <div style={{ width: '1px', background: 'var(--border)', margin: '0 5px' }}></div>
-              {categories.map(cat => (<button key={cat} onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)} className={`btn ${selectedCategory === cat ? 'btn-primary' : 'btn-ghost'}`} style={{ fontSize: '0.75rem', padding: '6px 12px', whiteSpace: 'nowrap' }}>{cat}</button>))}
-              <div style={{ width: '1px', background: 'var(--border)', margin: '0 5px' }}></div>
-              {stores.map(store => (<button key={store.id} onClick={() => setSelectedStore(selectedStore === store.id ? null : store.id)} className={`btn ${selectedStore === store.id ? 'btn-primary' : 'btn-ghost'}`} style={{ fontSize: '0.75rem', padding: '6px 12px', whiteSpace: 'nowrap' }}>{renderLogo(store.logo, '16px', store.name)} {store.name}</button>))}
-            </div>
+
+            {view === AppView.SEARCH && (
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '24px', overflowX: 'auto', paddingBottom: '8px', scrollbarWidth: 'none' }}>
+                <button onClick={() => setOnlyPromos(!onlyPromos)} className={`btn ${onlyPromos ? 'btn-primary' : 'btn-ghost'}`} style={{ fontSize: '0.75rem', padding: '6px 12px', whiteSpace: 'nowrap' }}><Tag size={14} /> Em Promoção</button>
+                <div style={{ width: '1px', background: 'var(--border)', margin: '0 5px' }}></div>
+                {categories.map(cat => (<button key={cat} onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)} className={`btn ${selectedCategory === cat ? 'btn-primary' : 'btn-ghost'}`} style={{ fontSize: '0.75rem', padding: '6px 12px', whiteSpace: 'nowrap' }}>{cat}</button>))}
+                <div style={{ width: '1px', background: 'var(--border)', margin: '0 5px' }}></div>
+                {stores.map(store => (<button key={store.id} onClick={() => setSelectedStore(selectedStore === store.id ? null : store.id)} className={`btn ${selectedStore === store.id ? 'btn-primary' : 'btn-ghost'}`} style={{ fontSize: '0.75rem', padding: '6px 12px', whiteSpace: 'nowrap' }}>{renderLogo(store.logo, '16px', store.name)} {store.name}</button>))}
+              </div>
+            )}
+
             {isSearching ? (
               <div style={{ textAlign: 'center', padding: '80px 0' }}>
                 <div className="logo-icon animate" style={{ margin: '0 auto 20px', width: '50px', height: '50px' }}><StoreIcon size={24} /></div>
                 <p style={{color: 'var(--text-muted)', fontWeight: 600}}>Sincronizando ofertas locais...</p>
               </div>
-            ) : filteredAndSortedResults.length > 0 ? (
+            ) : itemsToRender.length > 0 ? (
               <div className={viewMode === 'grid' ? "product-grid" : "product-list-view"}>
-                {filteredAndSortedResults.map(p => (<ProductCard key={p.id} product={p} onAdd={addToCart} layout={viewMode} />))}
+                {itemsToRender.map(item => (
+                  item.type === 'product' && item.data ? (
+                    <ProductCard key={item.id} product={item.data} onAdd={addToCart} layout={viewMode} />
+                  ) : (
+                    <InlineAdBanner key={item.id} layout={viewMode} />
+                  )
+                ))}
               </div>
             ) : (
               <div style={{ textAlign: 'center', padding: '60px', border: '2px dashed var(--border)', borderRadius: '20px' }}>
