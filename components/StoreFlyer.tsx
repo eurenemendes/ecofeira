@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, BookOpen, Maximize2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, BookOpen } from 'lucide-react';
 import { Store } from '../types';
 
 interface StoreFlyerProps {
@@ -14,16 +14,11 @@ const StoreFlyer: React.FC<StoreFlyerProps> = ({ store }) => {
   const flyerSrc = useMemo(() => {
     if (!store.flyerUrl) return "";
     
-    // Check if it's a Google Slides URL to apply slide parameters
     if (store.flyerUrl.includes('docs.google.com/presentation')) {
       const connector = store.flyerUrl.includes('?') ? '&' : '?';
-      // rm=minimal hides the Google Slides bottom bar
       return `${store.flyerUrl}${connector}rm=minimal&slide=id.p${currentSlide}`;
     }
     
-    // For other links like the Netlify one, we return it directly
-    // If the Netlify app supports slide params, we could append them, but standard iframes don't.
-    // However, keeping the logic for generic iframes:
     return store.flyerUrl;
   }, [store.flyerUrl, currentSlide]);
 
@@ -48,7 +43,7 @@ const StoreFlyer: React.FC<StoreFlyerProps> = ({ store }) => {
       boxShadow: 'var(--shadow-lg)',
       marginBottom: '32px',
       width: '100%',
-      maxWidth: '840px',
+      maxWidth: '600px', // Reduzido para caber melhor lateralmente no desktop
       margin: '0 auto 40px auto'
     }}>
       <div className="flex justify-between items-center" style={{ marginBottom: '16px' }}>
@@ -66,7 +61,7 @@ const StoreFlyer: React.FC<StoreFlyerProps> = ({ store }) => {
           </div>
           <div>
             <h4 style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--text-main)', marginBottom: '2px' }}>
-              Panfleto Digital Interactiva
+              Panfleto Digital Interativo
             </h4>
             <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>
               {store.name} • Ofertas exclusivas
@@ -109,18 +104,11 @@ const StoreFlyer: React.FC<StoreFlyerProps> = ({ store }) => {
             </button>
           </div>
         )}
-        
-        {!isGoogleSlides && (
-           <a href={store.flyerUrl} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" style={{ padding: '8px 16px', borderRadius: '10px', fontSize: '0.75rem' }}>
-             <Maximize2 size={14} /> Abrir em nova aba
-           </a>
-        )}
       </div>
 
       <div className="flyer-iframe-wrapper" style={{
         position: 'relative',
         width: '100%',
-        paddingTop: '141.6%', /* Aspect ratio for A4ish vertical content (1125/794) */
         borderRadius: '16px',
         overflow: 'hidden',
         background: '#f8fafc',
@@ -134,9 +122,8 @@ const StoreFlyer: React.FC<StoreFlyerProps> = ({ store }) => {
           width="100%" 
           height="100%" 
           allowFullScreen={true}
-          // scrolling="no" helps remove scrollbars on some browsers for simple content
           // @ts-ignore
-          scrolling="no"
+          scrolling="yes"
           style={{
             position: 'absolute',
             top: 0,
@@ -160,19 +147,28 @@ const StoreFlyer: React.FC<StoreFlyerProps> = ({ store }) => {
       </div>
 
       <style>{`
+        /* Desktop: Proporção mais vertical para caber panfletos (A4 approx) */
+        .flyer-iframe-wrapper {
+          padding-top: 135%; 
+        }
+
         .flyer-iframe-wrapper iframe::-webkit-scrollbar {
-          display: none;
+          width: 6px;
         }
-        .flyer-iframe-wrapper iframe {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
+        .flyer-iframe-wrapper iframe::-webkit-scrollbar-thumb {
+          background: var(--primary);
+          border-radius: 10px;
         }
+        
         @media (max-width: 640px) {
           .flyer-container {
             padding: 12px;
             border-radius: 16px;
+            max-width: 100%;
           }
+          /* Mobile: Muito mais longo para facilitar leitura vertical sem cortes excessivos */
           .flyer-iframe-wrapper {
+            padding-top: 185%; 
             border-radius: 12px;
           }
         }

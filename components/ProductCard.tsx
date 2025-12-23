@@ -1,26 +1,35 @@
 
 import React, { useState } from 'react';
 import { ProductOffer } from '../types';
-import { Plus, ShoppingBasket, Tag, Check, Store } from 'lucide-react';
+import { Plus, ShoppingBasket, Tag, Check } from 'lucide-react';
 import { MOCK_STORES } from '../constants';
 
 interface ProductCardProps {
   product: ProductOffer;
   onAdd: (product: ProductOffer) => void;
+  onStoreClick?: (storeId: string) => void;
   layout?: 'grid' | 'list';
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd, layout = 'grid' }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd, onStoreClick, layout = 'grid' }) => {
   const [added, setAdded] = useState(false);
   const savings = product.originalPrice - product.price;
   const discountPercent = Math.round((savings / product.originalPrice) * 100);
 
   const storeInfo = MOCK_STORES.find(s => s.id === product.storeId);
 
-  const handleAdd = () => {
+  const handleAdd = (e: React.MouseEvent) => {
+    e.stopPropagation();
     onAdd(product);
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
+  };
+
+  const handleStoreClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onStoreClick) {
+      onStoreClick(product.storeId);
+    }
   };
 
   const renderLogo = (logo: string | undefined, size: string = '24px') => {
@@ -103,7 +112,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd, layout = 'gri
             </h4>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div 
+            onClick={handleStoreClick}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', width: 'fit-content' }}
+            className="store-link"
+          >
              <div style={{ 
                width: '24px', 
                height: '24px', 
@@ -168,7 +181,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd, layout = 'gri
     );
   }
 
-  // Layout Grid (Inalterado, mantendo consistência)
+  // Layout Grid
   return (
     <div className="card animate" style={{ position: 'relative' }}>
       {product.isPromo && (
@@ -177,7 +190,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd, layout = 'gri
           top: '12px',
           left: '12px',
           background: 'var(--danger)',
-          // Fix: Wrap 'white' in quotes to avoid "Cannot find name 'white'" error.
           color: 'white',
           padding: '4px 10px',
           borderRadius: '8px',
@@ -229,7 +241,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd, layout = 'gri
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+          <div 
+            onClick={handleStoreClick}
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+            className="store-link"
+          >
             <div style={{ 
               width: '36px', 
               height: '36px', 
@@ -282,6 +298,15 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd, layout = 'gri
           </div>
         </div>
       </div>
+      <style>{`
+        .store-link:hover span {
+          color: var(--primary) !important;
+        }
+        .store-link:hover div {
+          border-color: var(--primary) !important;
+          transform: scale(1.05);
+        }
+      `}</style>
     </div>
   );
 };

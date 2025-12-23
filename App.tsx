@@ -160,6 +160,14 @@ function App() {
     setSearchResults(storeProducts);
   };
 
+  const handleStoreClick = useCallback((storeId: string) => {
+    const store = MOCK_STORES.find(s => s.id === storeId);
+    if (store) {
+      openStoreDetail(store);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, []);
+
   const renderLogo = (logo: string, size: string = '1em', alt: string = '') => {
     if (logo.startsWith('http')) {
       return <img src={logo} alt={alt} style={{ width: size, height: size, objectFit: 'contain', borderRadius: '4px' }} />;
@@ -452,7 +460,13 @@ function App() {
               <div className={viewMode === 'grid' ? "product-grid" : "product-list-view"}>
                 {itemsToRender.map(item => (
                   item.type === 'product' && item.data ? (
-                    <ProductCard key={item.id} product={item.data} onAdd={addToCart} layout={viewMode} />
+                    <ProductCard 
+                      key={item.id} 
+                      product={item.data} 
+                      onAdd={addToCart} 
+                      onStoreClick={handleStoreClick}
+                      layout={viewMode} 
+                    />
                   ) : (
                     <InlineAdBanner key={item.id} layout={viewMode} />
                   )
