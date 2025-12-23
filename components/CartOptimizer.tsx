@@ -1,7 +1,8 @@
+
 import React, { useMemo, useState } from 'react';
 import { CartItem, ProductOffer } from '../types';
 import { MOCK_STORES, STORE_PRICING_FACTORS, RAW_PRODUCTS } from '../constants';
-import { TrendingDown, MapPin, CheckCircle2, AlertCircle, Eye, X, Plus, Trash2 } from 'lucide-react';
+import { TrendingDown, MapPin, CheckCircle2, AlertCircle, Eye, X, Plus, Trash2, ArrowRight } from 'lucide-react';
 
 interface OptimizedCartItem extends CartItem {
   isConfirmed: boolean;
@@ -228,95 +229,218 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart, onAdd, onDecrement,
         </div>
       )}
 
-      {/* Card de Destaque - Banner de Melhor Opção */}
-      <div style={{
-        background: 'linear-gradient(135deg, #6fd4b2 0%, #4cae8d 100%)',
-        borderRadius: '32px',
-        padding: '32px',
-        color: 'white',
-        boxShadow: '0 20px 40px -10px rgba(16, 185, 129, 0.25)',
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
+      {/* Card de Destaque - Melhor Opção de Compra */}
+      <div className="best-option-card">
         {/* Ícone Decorativo de Fundo */}
-        <div style={{ position: 'absolute', right: '10px', top: '10px', opacity: 0.1, pointerEvents: 'none' }}>
-          <TrendingDown size={140} strokeWidth={1.5} />
+        <div className="bg-icon">
+          <TrendingDown size={180} strokeWidth={1} />
         </div>
 
-        <div className="flex items-center gap-2" style={{ marginBottom: '24px', opacity: 0.9 }}>
-          <TrendingDown size={20} />
-          <h3 style={{ fontWeight: 800, fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-            Melhor Opção de Compra
-          </h3>
+        <div className="flex items-center gap-2" style={{ marginBottom: '20px', opacity: 0.9 }}>
+          <TrendingDown size={18} />
+          <h3 className="card-label">MELHOR OPÇÃO DE COMPRA</h3>
         </div>
         
-        <div className="flex justify-between items-start" style={{ position: 'relative', zIndex: 2 }}>
-          <div style={{ flex: 1 }}>
-            <p style={{ fontSize: '0.9rem', fontWeight: 500, opacity: 0.85, marginBottom: '4px' }}>Economize comprando no:</p>
-            <div style={{ fontSize: '2.8rem', fontWeight: 900, lineHeight: 1, marginBottom: '16px' }}>
-               {bestOption.storeName}
-            </div>
+        <div className="best-option-content">
+          <div className="store-info-section">
+            <p className="sub-label">Economize comprando no:</p>
+            <h2 className="store-name-title">{bestOption.storeName}</h2>
             
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                <div style={{ 
-                    display: 'inline-flex', 
-                    alignItems: 'center', 
-                    gap: '8px', 
-                    fontSize: '0.75rem', 
-                    background: 'rgba(255, 255, 255, 0.15)', 
-                    padding: '6px 14px', 
-                    borderRadius: '100px',
-                    fontWeight: 600,
-                    backdropFilter: 'blur(4px)'
-                }}>
+            <div className="badge-group">
+                <div className="status-badge">
                     <CheckCircle2 size={14} /> 
                     {totalCartItems - bestOption.missingItems} de {totalCartItems} itens confirmados no banco
                 </div>
 
                 <button 
                   onClick={() => setSelectedStoreId(bestOption.storeId)}
-                  style={{
-                    background: 'white',
-                    color: '#4cae8d',
-                    border: 'none',
-                    borderRadius: '100px',
-                    padding: '6px 14px',
-                    fontSize: '0.75rem',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                    transition: 'transform 0.2s'
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
-                  onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                  className="view-items-btn"
                 >
                   <Eye size={14} /> Ver Itens
                 </button>
             </div>
           </div>
           
-          <div style={{ textAlign: 'right' }}>
-            <p style={{ fontSize: '0.9rem', opacity: 0.85, marginBottom: '2px' }}>Total Estimado</p>
-            <div style={{ fontSize: '3rem', fontWeight: 900, lineHeight: 1 }}>
-              R$ {bestOption.totalPrice.toFixed(2).replace('.', ',')}
+          <div className="price-section">
+            <p className="sub-label">Valor Total Estimado</p>
+            <div className="total-price-display">
+              <span style={{ fontSize: '0.5em', verticalAlign: 'middle', marginRight: '4px' }}>R$</span>
+              {bestOption.totalPrice.toFixed(2).replace('.', ',')}
             </div>
           </div>
         </div>
         
         {optimizedData.length > 1 && (
-             <div style={{ 
-               marginTop: '32px', 
-               paddingTop: '20px', 
-               borderTop: '1px solid rgba(255,255,255,0.2)', 
-               fontSize: '0.95rem',
-               fontWeight: 500
-             }}>
-                Você economiza <span style={{ fontWeight: 800, color: '#fcd34d' }}>R$ {(worstOption.totalPrice - bestOption.totalPrice).toFixed(2).replace('.', ',')}</span> nesta escolha!
+             <div className="savings-footer">
+                <div className="flex items-center gap-2">
+                   <div className="savings-dot"></div>
+                   <span>Você economiza <strong style={{ color: '#fff' }}>R$ {(worstOption.totalPrice - bestOption.totalPrice).toFixed(2).replace('.', ',')}</strong> nesta escolha!</span>
+                </div>
+                <ArrowRight size={16} />
              </div>
         )}
+
+        <style>{`
+          .best-option-card {
+            background: linear-gradient(135deg, #6fd4b2 0%, #4cae8d 100%);
+            border-radius: 32px;
+            padding: 32px;
+            color: white;
+            box-shadow: 0 20px 40px -10px rgba(16, 185, 129, 0.3);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+          }
+          
+          .bg-icon {
+            position: absolute;
+            right: -20px;
+            top: -20px;
+            opacity: 0.12;
+            pointer-events: none;
+            color: white;
+          }
+
+          .card-label {
+            font-weight: 800;
+            font-size: 0.75rem;
+            letter-spacing: 0.12em;
+            opacity: 0.9;
+          }
+
+          .best-option-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 24px;
+            position: relative;
+            z-index: 2;
+          }
+
+          .store-info-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+          }
+
+          .sub-label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            opacity: 0.8;
+          }
+
+          .store-name-title {
+            font-size: clamp(1.8rem, 5vw, 2.8rem);
+            font-weight: 900;
+            line-height: 1.1;
+            margin: 4px 0 16px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          }
+
+          .badge-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+          }
+
+          .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.75rem;
+            background: rgba(255, 255, 255, 0.18);
+            padding: 8px 16px;
+            border-radius: 100px;
+            font-weight: 700;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+          }
+
+          .view-items-btn {
+            background: white;
+            color: #4cae8d;
+            border: none;
+            border-radius: 100px;
+            padding: 8px 18px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          }
+
+          .view-items-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.18);
+          }
+
+          .price-section {
+            text-align: right;
+            flex-shrink: 0;
+            margin-bottom: 5px;
+          }
+
+          .total-price-display {
+            font-size: clamp(2rem, 6vw, 3.2rem);
+            font-weight: 900;
+            line-height: 1;
+            letter-spacing: -0.02em;
+          }
+
+          .savings-footer {
+            margin-top: 32px;
+            padding: 16px 20px;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+          }
+
+          .savings-dot {
+            width: 8px;
+            height: 8px;
+            background: #fcd34d;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(252, 211, 77, 0.6);
+          }
+
+          @media (max-width: 640px) {
+            .best-option-card {
+              padding: 24px;
+              border-radius: 24px;
+            }
+            .best-option-content {
+              flex-direction: column;
+              align-items: flex-start;
+              gap: 20px;
+            }
+            .price-section {
+              text-align: left;
+              width: 100%;
+              border-top: 1px solid rgba(255, 255, 255, 0.2);
+              padding-top: 16px;
+            }
+            .store-name-title {
+              margin-bottom: 20px;
+            }
+            .savings-footer {
+              margin-top: 24px;
+              font-size: 0.8rem;
+            }
+          }
+        `}</style>
       </div>
 
       {/* Seção Lista Comparativa */}
