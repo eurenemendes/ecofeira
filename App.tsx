@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Search, ShoppingCart, Store as StoreIcon, Trash2, History, X, Moon, Sun, Filter, ArrowUpDown, Tag, ArrowUp, ChevronRight, Package, Check, AlertTriangle, LayoutGrid, List, ArrowLeft, MapPin } from 'lucide-react';
+import { Search, ShoppingCart, Store as StoreIcon, Trash2, History, X, Moon, Sun, Filter, ArrowUpDown, Tag, ArrowUp, ChevronRight, Package, Check, AlertTriangle, LayoutGrid, List, ArrowLeft, MapPin, BookOpen, ChevronDown, ChevronUp } from 'lucide-react';
 import { searchProductsWithGemini } from './services/geminiService';
 import { ProductOffer, CartItem, AppView, Store } from './types';
 import { INITIAL_SUGGESTIONS, MOCK_STORES, RAW_PRODUCTS } from './constants';
@@ -8,6 +8,7 @@ import ProductCard from './components/ProductCard';
 import CartOptimizer from './components/CartOptimizer';
 import BannerCarousel from './components/BannerCarousel';
 import InlineAdBanner from './components/InlineAdBanner';
+import StoreFlyer from './components/StoreFlyer';
 
 type SortOption = 'price_asc' | 'price_desc' | 'name_asc';
 type ViewMode = 'grid' | 'list';
@@ -38,6 +39,7 @@ function App() {
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('ecofeira_theme') === 'dark');
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [isClearModalOpen, setIsClearModalOpen] = useState(false);
+  const [isFlyerExpanded, setIsFlyerExpanded] = useState(false);
   
   const searchRef = useRef<HTMLDivElement>(null);
   const headerSearchRef = useRef<HTMLDivElement>(null);
@@ -140,6 +142,7 @@ function App() {
   const openStoreDetail = (store: Store) => {
     setSelectedStoreData(store);
     setView(AppView.STORE_DETAIL);
+    setIsFlyerExpanded(false); // Reset flyer state when switching stores
     const storeProducts = RAW_PRODUCTS.filter(p => p.supermercado === store.name).map(p => ({
       id: `prod_${p.id}`,
       baseProductId: String(p.id),
@@ -351,17 +354,56 @@ function App() {
         {(view === AppView.STORE_DETAIL || view === AppView.SEARCH) && (
           <div className="animate">
             {view === AppView.STORE_DETAIL && selectedStoreData && (
-              <div className="flex items-center gap-4" style={{ marginBottom: '30px' }}>
-                <button className="btn btn-ghost" onClick={() => setView(AppView.STORES)} style={{padding: '10px'}}><ArrowLeft size={20} /></button>
-                <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
-                  <div style={{fontSize: '2.5rem', width: '60px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                    {renderLogo(selectedStoreData.logo, '60px', selectedStoreData.name)}
+              <div style={{ marginBottom: '40px' }}>
+                <div className="flex items-center justify-between" style={{ marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+                  <div className="flex items-center gap-4">
+                    <button className="btn btn-ghost" onClick={() => setView(AppView.STORES)} style={{padding: '10px'}}><ArrowLeft size={20} /></button>
+                    <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
+                      <div style={{
+                        fontSize: '2.5rem', 
+                        width: '64px', 
+                        height: '64px', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center',
+                        background: 'var(--card-bg)',
+                        borderRadius: '16px',
+                        border: '1px solid var(--border)',
+                        boxShadow: 'var(--shadow-sm)'
+                      }}>
+                        {renderLogo(selectedStoreData.logo, '40px', selectedStoreData.name)}
+                      </div>
+                      <div>
+                        <h2 style={{fontWeight: 800, fontSize: '1.8rem', color: 'var(--text-main)'}}>{selectedStoreData.name}</h2>
+                        <div style={{color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 600}}>
+                          <MapPin size={14} style={{ display: 'inline', marginRight: '4px' }} />
+                          {selectedStoreData.distance} • Todos os produtos
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <h2 style={{fontWeight: 800, fontSize: '2rem'}}>{selectedStoreData.name}</h2>
-                    <div style={{color: 'var(--text-muted)', fontSize: '0.9rem'}}>{selectedStoreData.distance} • Todos os produtos</div>
-                  </div>
+                  
+                  {selectedStoreData.flyerUrl && (
+                    <button 
+                      className={`btn ${isFlyerExpanded ? 'btn-ghost' : 'btn-primary'}`} 
+                      onClick={() => setIsFlyerExpanded(!isFlyerExpanded)}
+                      style={{ 
+                        borderRadius: '14px', 
+                        gap: '10px', 
+                        padding: '12px 24px',
+                        boxShadow: isFlyerExpanded ? 'none' : '0 8px 20px rgba(16, 185, 129, 0.25)' 
+                      }}
+                    >
+                      {isFlyerExpanded ? <ChevronUp size={20} /> : <BookOpen size={20} />}
+                      <span style={{ fontWeight: 800 }}>{isFlyerExpanded ? 'Ocultar Panfleto' : 'Ver Panfleto'}</span>
+                    </button>
+                  )}
                 </div>
+
+                {/* Exibição do Panfleto (Iframe) */}
+                {isFlyerExpanded && selectedStoreData.flyerUrl && (
+                  <StoreFlyer store={selectedStoreData} />
+                )}
               </div>
             )}
 
@@ -518,6 +560,12 @@ function App() {
         .btn-icon:hover { background: var(--bg); color: var(--text-main); }
         .btn-icon.active { background: var(--primary-light); color: var(--primary); }
         
+        .product-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+          gap: 20px;
+        }
+
         .product-list-view { 
           display: flex; 
           flex-direction: column;
@@ -528,6 +576,10 @@ function App() {
         
         @media (max-width: 768px) {
           .header-nav { display: none; }
+          .product-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+          }
           .product-list-view { 
             gap: 12px; 
           }

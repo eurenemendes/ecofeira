@@ -28,14 +28,16 @@ export const MOCK_STORES: Store[] = [
     name: 'Pão de Açúcar',
     color: 'bg-green-700',
     logo: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRL5Wc0BCEz604XzlbPWbs0eWwVhRErL_Rbbg&s',
-    distance: '1.5 km'
+    distance: '1.5 km',
+    flyerUrl: 'https://iframesb.netlify.app/'
   },
   {
     id: 'store_borges',
     name: 'Borges',
     color: 'bg-blue-800',
     logo: '🏗️',
-    distance: '3.2 km'
+    distance: '3.2 km',
+    flyerUrl: 'https://iframesb.netlify.app/'
   }
 ];
 
