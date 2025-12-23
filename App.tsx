@@ -6,6 +6,7 @@ import { ProductOffer, CartItem, AppView, Store } from './types';
 import { INITIAL_SUGGESTIONS, MOCK_STORES, RAW_PRODUCTS } from './constants';
 import ProductCard from './components/ProductCard';
 import CartOptimizer from './components/CartOptimizer';
+import BannerCarousel from './components/BannerCarousel';
 
 type SortOption = 'price_asc' | 'price_desc' | 'name_asc';
 type ViewMode = 'grid' | 'list';
@@ -256,13 +257,16 @@ function App() {
 
       <main className="container" style={{paddingTop: '30px', paddingBottom: '80px'}}>
         {view === AppView.HOME && (
-          <div className="animate" style={{textAlign: 'center', maxWidth: '600px', margin: '60px auto'}}>
-            <h1 style={{fontSize: '3rem', fontWeight: 800, marginBottom: '20px', lineHeight: 1.1}}>
+          <div className="animate" style={{textAlign: 'center', maxWidth: '800px', margin: '60px auto'}}>
+            <h1 style={{fontSize: '3.2rem', fontWeight: 800, marginBottom: '16px', lineHeight: 1.1}}>
               Compare e <span style={{color: 'var(--primary)'}}>economize</span>.
             </h1>
-            <p style={{color: 'var(--text-muted)', marginBottom: '40px', fontSize: '1.1rem'}}>
+            <p style={{color: 'var(--text-muted)', marginBottom: '30px', fontSize: '1.1rem'}}>
               Os melhores preços de {RAW_PRODUCTS.length} produtos em 5 supermercados locais.
             </p>
+
+            <BannerCarousel />
+
             <div style={{position: 'relative', marginBottom: '40px'}} ref={searchRef}>
                <Search style={{position: 'absolute', left: '20px', top: '18px', color: 'var(--primary)', zIndex: 10}} size={24} />
                <form onSubmit={(e) => handleSearch(e)}>
@@ -350,7 +354,7 @@ function App() {
                 </div>
                 <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortOption)} style={{ background: 'var(--card-bg)', color: 'var(--text-main)', border: '1px solid var(--border)', padding: '6px 12px', borderRadius: '10px', fontSize: '0.85rem', outline: 'none' }}>
                   <option value="price_asc">Menor Preço</option>
-                  <option value="price_desc">Maior Preço</option>
+                  <option value="price_desc">Major Preço</option>
                   <option value="name_asc">Nome (A-Z)</option>
                 </select>
               </div>
@@ -378,7 +382,7 @@ function App() {
                   <ArrowUpDown size={16} color="var(--text-muted)" />
                   <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortOption)} style={{ background: 'var(--card-bg)', color: 'var(--text-main)', border: '1px solid var(--border)', padding: '6px 12px', borderRadius: '10px', fontSize: '0.85rem', outline: 'none' }}>
                     <option value="price_asc">Menor Preço</option>
-                    <option value="price_desc">Maior Preço</option>
+                    <option value="price_desc">Major Preço</option>
                     <option value="name_asc">Nome (A-Z)</option>
                   </select>
                 </div>
@@ -503,24 +507,17 @@ function App() {
         .btn-icon.active { background: var(--primary-light); color: var(--primary); }
         
         .product-list-view { 
-          display: grid; 
-          grid-template-columns: repeat(2, 1fr); 
+          display: flex; 
+          flex-direction: column;
           gap: 16px; 
           margin-top: 30px; 
+          width: 100%;
         }
         
         @media (max-width: 768px) {
           .header-nav { display: none; }
           .product-list-view { 
-            grid-template-columns: repeat(2, 1fr); 
-            gap: 10px; 
-          }
-        }
-
-        @media (max-width: 480px) {
-          .product-list-view { 
-            grid-template-columns: repeat(2, 1fr); 
-            gap: 8px; 
+            gap: 12px; 
           }
         }
         
