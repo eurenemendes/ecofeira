@@ -17,7 +17,6 @@ interface SuggestionItem {
   type: 'product' | 'category';
 }
 
-// Interface auxiliar para renderização mista de produtos e anúncios
 interface RenderItem {
   type: 'product' | 'ad';
   data?: ProductOffer;
@@ -43,7 +42,6 @@ function App() {
   const searchRef = useRef<HTMLDivElement>(null);
   const headerSearchRef = useRef<HTMLDivElement>(null);
 
-  // Filtros
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
   const [onlyPromos, setOnlyPromos] = useState(false);
@@ -66,7 +64,6 @@ function App() {
     }
   }, [isDarkMode]);
 
-  // Fechar sugestões ao clicar fora
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -143,7 +140,6 @@ function App() {
   const openStoreDetail = (store: Store) => {
     setSelectedStoreData(store);
     setView(AppView.STORE_DETAIL);
-    // Carregar produtos da loja
     const storeProducts = RAW_PRODUCTS.filter(p => p.supermercado === store.name).map(p => ({
       id: `prod_${p.id}`,
       baseProductId: String(p.id),
@@ -181,7 +177,6 @@ function App() {
     return results;
   }, [searchResults, selectedCategory, selectedStore, onlyPromos, sortBy, view]);
 
-  // Lógica para injetar o anúncio na segunda posição da grade/lista
   const itemsToRender = useMemo<RenderItem[]>(() => {
     const products: RenderItem[] = filteredAndSortedResults.map(p => ({
       type: 'product',
@@ -190,7 +185,6 @@ function App() {
     }));
 
     if (products.length >= 1) {
-      // Inserir anúncio após o primeiro item (segunda posição, index 1)
       products.splice(1, 0, { type: 'ad', id: 'inline-ad-banner' });
     }
 

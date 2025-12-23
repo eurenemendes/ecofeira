@@ -91,7 +91,7 @@ const InlineAdBanner: React.FC<InlineAdBannerProps> = ({ layout }) => {
              <button onClick={prevSlide} className="ad-nav-btn"><ChevronLeft size={16} /></button>
              <button onClick={nextSlide} className="ad-nav-btn"><ChevronRight size={16} /></button>
           </div>
-          <button className="btn" style={{ background: 'white', color: 'var(--text-main)', padding: '8px 16px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 800 }}>
+          <button className="btn" style={{ background: 'white', color: '#0f172a', padding: '8px 16px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 800 }}>
             {slide.cta}
           </button>
         </div>
@@ -140,7 +140,7 @@ const InlineAdBanner: React.FC<InlineAdBannerProps> = ({ layout }) => {
         <span style={{ fontSize: '0.65rem', fontWeight: 900, background: 'rgba(255,255,255,0.2)', padding: '2px 10px', borderRadius: '4px', alignSelf: 'center', marginBottom: '12px' }}>{slide.tag}</span>
         <h4 style={{ fontSize: '1.25rem', fontWeight: 800, lineHeight: 1.2, marginBottom: '20px' }}>{slide.title}</h4>
         
-        <button className="btn" style={{ background: 'white', color: 'var(--text-main)', padding: '10px 20px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 800, alignSelf: 'center' }}>
+        <button className="btn" style={{ background: 'white', color: '#0f172a', padding: '10px 20px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 800, alignSelf: 'center' }}>
           {slide.cta}
         </button>
       </div>

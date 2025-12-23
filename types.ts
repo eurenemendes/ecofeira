@@ -1,3 +1,4 @@
+
 export interface ProductBase {
   id: string;
   name: string;
@@ -13,6 +14,8 @@ export interface Store {
   color: string;
   logo: string;
   distance: string;
+  // Added optional flyerUrl property to fix missing property errors in StoreFlyer component
+  flyerUrl?: string;
 }
 
 export interface ProductOffer {
@@ -23,8 +26,8 @@ export interface ProductOffer {
   storeId: string;
   storeName: string;
   storeColor: string;
-  price: number; // Preço atual (promocional ou normal)
-  originalPrice: number; // Preço sem desconto
+  price: number;
+  originalPrice: number;
   unit: string;
   imageUrl: string;
   isPromo: boolean;

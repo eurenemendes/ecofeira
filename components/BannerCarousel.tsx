@@ -105,7 +105,7 @@ const BannerCarousel: React.FC = () => {
               className="btn"
               style={{
                 background: 'white',
-                color: 'var(--text-main)',
+                color: '#0f172a', // Cor fixa escura para garantir visibilidade no botão branco
                 width: 'fit-content',
                 padding: '8px 20px',
                 borderRadius: '12px',

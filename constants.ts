@@ -39,13 +39,12 @@ export const MOCK_STORES: Store[] = [
   }
 ];
 
-// Added STORE_PRICING_FACTORS to fix missing export error in CartOptimizer.tsx
 export const STORE_PRICING_FACTORS: Record<string, number> = {
   'store_bh': 0.95,
   'store_carrefour': 1.0,
   'store_extra': 1.05,
   'store_pao': 1.15,
-  'store_atacadao': 0.85
+  'store_borges': 0.90
 };
 
 export const RAW_PRODUCTS = [
