@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { ProductOffer } from '../types';
-import { Plus, ShoppingBasket, Tag, Check } from 'lucide-react';
+import { Plus, ShoppingBasket, Tag, Check, Heart } from 'lucide-react';
 import { MOCK_STORES } from '../constants';
 
 interface ProductCardProps {
@@ -9,9 +9,18 @@ interface ProductCardProps {
   onAdd: (product: ProductOffer) => void;
   onStoreClick?: (storeId: string) => void;
   layout?: 'grid' | 'list';
+  isFavorite?: boolean;
+  onToggleFavorite?: (product: ProductOffer) => void;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd, onStoreClick, layout = 'grid' }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ 
+  product, 
+  onAdd, 
+  onStoreClick, 
+  layout = 'grid',
+  isFavorite = false,
+  onToggleFavorite
+}) => {
   const [added, setAdded] = useState(false);
   const savings = product.originalPrice - product.price;
   const discountPercent = Math.round((savings / product.originalPrice) * 100);
@@ -23,6 +32,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd, onStoreClick,
     onAdd(product);
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
+  };
+
+  const handleToggleFavorite = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onToggleFavorite) {
+      onToggleFavorite(product);
+    }
   };
 
   const handleStoreClick = (e: React.MouseEvent) => {
@@ -70,6 +86,32 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd, onStoreClick,
             {discountPercent}% ECONOMIA
           </div>
         )}
+
+        {/* Favorite Heart for List view */}
+        <button 
+          onClick={handleToggleFavorite}
+          style={{
+            position: 'absolute',
+            top: '10px',
+            right: '10px',
+            background: 'var(--card-bg)',
+            border: '1px solid var(--border)',
+            borderRadius: '50%',
+            width: '32px',
+            height: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            zIndex: 15,
+            padding: 0,
+            color: isFavorite ? '#f43f5e' : 'var(--text-muted)',
+            transition: 'all 0.2s ease',
+            boxShadow: 'var(--shadow-sm)'
+          }}
+        >
+          <Heart size={16} fill={isFavorite ? '#f43f5e' : 'none'} />
+        </button>
 
         {/* Imagem/Ícone */}
         <div style={{
@@ -205,6 +247,33 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd, onStoreClick,
         </div>
       )}
 
+      {/* Favorite Heart for Grid view */}
+      <button 
+        onClick={handleToggleFavorite}
+        style={{
+          position: 'absolute',
+          top: '12px',
+          right: '12px',
+          background: 'rgba(255, 255, 255, 0.9)',
+          border: 'none',
+          borderRadius: '50%',
+          width: '32px',
+          height: '32px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          zIndex: 5,
+          padding: 0,
+          color: isFavorite ? '#f43f5e' : '#64748b',
+          transition: 'transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+        }}
+        className="favorite-btn"
+      >
+        <Heart size={18} fill={isFavorite ? '#f43f5e' : 'none'} />
+      </button>
+
       <div className="product-card-image" style={{
         background: 'var(--bg)',
         height: '140px',
@@ -305,6 +374,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd, onStoreClick,
         .store-link:hover div {
           border-color: var(--primary) !important;
           transform: scale(1.05);
+        }
+        .favorite-btn:hover {
+          transform: scale(1.1);
+          background: white !important;
         }
       `}</style>
     </div>

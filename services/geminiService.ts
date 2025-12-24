@@ -1,3 +1,4 @@
+
 import { ProductOffer } from "../types";
 import { MOCK_STORES, RAW_PRODUCTS } from "../constants";
 
@@ -17,7 +18,8 @@ export const searchProductsWithGemini = async (query: string): Promise<ProductOf
     const store = MOCK_STORES.find(s => s.name === p.supermercado) || MOCK_STORES[0];
     
     return {
-      id: `prod_${p.id}`,
+      // CRITICAL: ID must be unique per product-store pair for correct favoriting/cart logic
+      id: `prod_${p.id}_${store.id}`,
       baseProductId: String(p.id),
       name: p.produto,
       category: p.categoria,

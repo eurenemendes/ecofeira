@@ -13,7 +13,7 @@ import {
   Search, ShoppingCart, Store as StoreIcon, Trash2, History, X, Moon, Sun, 
   Tag, ArrowUp, ChevronRight, Package, Check, AlertTriangle, LayoutGrid, 
   List, ArrowLeft, MapPin, BookOpen, ChevronUp, Bell, BellOff, Info, 
-  TrendingDown, Sparkles, Clock, ArrowUpDown
+  TrendingDown, Sparkles, Clock, ArrowUpDown, Heart
 } from 'lucide-react';
 import { searchProductsWithGemini } from './services/geminiService';
 import { ProductOffer, CartItem, Store, AppNotification } from './types';
@@ -38,7 +38,6 @@ interface RenderItem {
   id: string;
 }
 
-// Added helper function to format notification timestamps
 const formatTime = (timestamp: number) => {
   const diff = Date.now() - timestamp;
   if (diff < 60000) return 'Agora';
@@ -47,16 +46,16 @@ const formatTime = (timestamp: number) => {
   return new Date(timestamp).toLocaleDateString();
 };
 
-/**
- * Componente interno para gerenciar a lógica da página de detalhes da loja
- * permitindo o carregamento via ID na URL.
- */
 function StoreDetailView({ 
   onAddToCart, 
-  onStoreClick 
+  onStoreClick,
+  onToggleFavorite,
+  favorites
 }: { 
   onAddToCart: (p: ProductOffer) => void,
-  onStoreClick: (id: string) => void
+  onStoreClick: (id: string) => void,
+  onToggleFavorite: (p: ProductOffer) => void,
+  favorites: string[]
 }) {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -135,7 +134,14 @@ function StoreDetailView({
       </div>
       <div className={viewMode === 'grid' ? "product-grid" : "product-list-view"}>
         {storeProducts.map(product => (
-          <ProductCard key={product.id} product={product} onAdd={onAddToCart} layout={viewMode} />
+          <ProductCard 
+            key={product.id} 
+            product={product} 
+            onAdd={onAddToCart} 
+            layout={viewMode} 
+            isFavorite={favorites.includes(product.id)}
+            onToggleFavorite={onToggleFavorite}
+          />
         ))}
       </div>
     </div>
@@ -153,6 +159,7 @@ function AppContent() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<ProductOffer[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [favorites, setFavorites] = useState<string[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
@@ -217,13 +224,50 @@ function AppContent() {
     const savedCart = localStorage.getItem('ecofeira_cart');
     if (savedCart) try { setCart(JSON.parse(savedCart)); } catch (e) {}
 
+    const savedFavorites = localStorage.getItem('ecofeira_favorites');
+    if (savedFavorites) try { setFavorites(JSON.parse(savedFavorites)); } catch (e) {}
+
     const savedNotifs = localStorage.getItem('ecofeira_notifs');
     if (savedNotifs) try { setNotifications(JSON.parse(savedNotifs)); } catch (e) {}
   }, []);
 
   useEffect(() => { localStorage.setItem('ecofeira_history', JSON.stringify(searchHistory)); }, [searchHistory]);
   useEffect(() => { localStorage.setItem('ecofeira_cart', JSON.stringify(cart)); }, [cart]);
+  useEffect(() => { localStorage.setItem('ecofeira_favorites', JSON.stringify(favorites)); }, [favorites]);
   useEffect(() => { localStorage.setItem('ecofeira_notifs', JSON.stringify(notifications)); }, [notifications]);
+
+  const toggleFavorite = useCallback((product: ProductOffer) => {
+    setFavorites(prev => {
+      if (prev.includes(product.id)) {
+        return prev.filter(id => id !== product.id);
+      }
+      return [...prev, product.id];
+    });
+  }, []);
+
+  const favoriteProducts = useMemo(() => {
+    // Collect all unique offers across all stores for favorited products
+    const allOffers: ProductOffer[] = RAW_PRODUCTS.flatMap(p => {
+      const store = MOCK_STORES.find(s => s.name === p.supermercado);
+      if (!store) return [];
+      return [{
+        id: `prod_${p.id}_${store.id}`,
+        baseProductId: String(p.id),
+        name: p.produto,
+        category: p.categoria,
+        storeId: store.id,
+        storeName: store.name,
+        storeColor: store.color,
+        price: p.promocao ? (p.preco_promocional || p.preco_normal) : p.preco_normal,
+        originalPrice: p.preco_normal,
+        unit: p.produto.split(' ').slice(-1)[0],
+        imageUrl: "",
+        isPromo: p.promocao
+      }];
+    });
+
+    return allOffers.filter(offer => favorites.includes(offer.id));
+  }, [favorites]);
 
   // Automated Notifications
   useEffect(() => {
@@ -388,6 +432,7 @@ function AppContent() {
 
   const unreadCount = useMemo(() => notifications.filter(n => !n.isRead).length, [notifications]);
   const totalItems = useMemo(() => cart.reduce((acc, item) => acc + item.quantity, 0), [cart]);
+  const favoritesCount = useMemo(() => favorites.length, [favorites]);
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
   const renderLogo = (logo: string, size: string = '1em', alt: string = '') => {
@@ -410,7 +455,11 @@ function AppContent() {
             <Link to="/stores" className={`nav-link ${location.pathname === '/stores' ? 'active' : ''}`}>
               Supermercados
             </Link>
-            {location.pathname !== '/' && location.pathname !== '/stores' && (
+            <Link to="/favorites" className={`nav-link ${location.pathname === '/favorites' ? 'active' : ''}`} style={{ position: 'relative' }}>
+              Favoritos
+              {favoritesCount > 0 && <span className="badge-count animate-pop" style={{ position: 'absolute', top: '-2px', right: '-8px', width: '16px', height: '16px', fontSize: '0.6rem' }}>{favoritesCount}</span>}
+            </Link>
+            {location.pathname !== '/' && location.pathname !== '/stores' && location.pathname !== '/favorites' && (
               <div className="search-container" ref={headerSearchRef}>
                 <form onSubmit={(e) => handleSearch(e)}>
                   <Search className="search-icon" size={18} />
@@ -530,6 +579,32 @@ function AppContent() {
             </div>
           } />
 
+          <Route path="/favorites" element={
+            <div className="animate">
+              <h2 style={{fontWeight: 800, fontSize: '2rem', marginBottom: '30px'}}>Meus Favoritos</h2>
+              {favoriteProducts.length === 0 ? (
+                <div style={{textAlign: 'center', padding: '60px', border: '2px dashed var(--border)', borderRadius: '30px'}}>
+                  <Heart size={48} style={{ color: 'var(--text-muted)', opacity: 0.3, marginBottom: '16px' }} />
+                  <p style={{color: 'var(--text-muted)', marginBottom: '20px'}}>Você ainda não favoritou nenhum produto.</p>
+                  <button className="btn btn-primary" onClick={() => navigate('/')}>Buscar Produtos</button>
+                </div>
+              ) : (
+                <div className="product-grid">
+                  {favoriteProducts.map(product => (
+                    <ProductCard 
+                      key={product.id} 
+                      product={product} 
+                      onAdd={addToCart} 
+                      onStoreClick={handleStoreClick}
+                      isFavorite={true}
+                      onToggleFavorite={toggleFavorite}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          } />
+
           <Route path="/search" element={
             <div className="animate">
               <div className="flex items-center justify-between" style={{ marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
@@ -570,7 +645,15 @@ function AppContent() {
                 <div className={viewMode === 'grid' ? "product-grid" : "product-list-view"}>
                   {itemsToRender.map(item => (
                     item.type === 'product' && item.data ? (
-                      <ProductCard key={item.id} product={item.data} onAdd={addToCart} onStoreClick={handleStoreClick} layout={viewMode} />
+                      <ProductCard 
+                        key={item.id} 
+                        product={item.data} 
+                        onAdd={addToCart} 
+                        onStoreClick={handleStoreClick} 
+                        layout={viewMode}
+                        isFavorite={favorites.includes(item.data.id)}
+                        onToggleFavorite={toggleFavorite}
+                      />
                     ) : (
                       <InlineAdBanner key={item.id} layout={viewMode} />
                     )
@@ -585,12 +668,10 @@ function AppContent() {
             </div>
           } />
 
-          {/* Rota compatível com links diretos ex: #/store/store_bh */}
-          <Route path="/store/:id" element={<StoreDetailView onAddToCart={addToCart} onStoreClick={handleStoreClick} />} />
+          <Route path="/store/:id" element={<StoreDetailView onAddToCart={addToCart} onStoreClick={handleStoreClick} onToggleFavorite={toggleFavorite} favorites={favorites} />} />
           
-          {/* Suporte extra para links curtos ex: #/store_bh (opcional, mapeando IDs conhecidos) */}
           {MOCK_STORES.map(s => (
-            <Route key={`alias-${s.id}`} path={`/${s.id}`} element={<StoreDetailView onAddToCart={addToCart} onStoreClick={handleStoreClick} />} />
+            <Route key={`alias-${s.id}`} path={`/${s.id}`} element={<StoreDetailView onAddToCart={addToCart} onStoreClick={handleStoreClick} onToggleFavorite={toggleFavorite} favorites={favorites} />} />
           ))}
 
           <Route path="/cart" element={
@@ -687,6 +768,7 @@ function AppContent() {
         .btn-icon.active { background: var(--primary-light); color: var(--primary); }
         .mobile-only { display: none; }
         @media (max-width: 768px) {
+          .header-nav { display: none; }
           .mobile-only { display: inline-flex; }
         }
         .notif-pulse { animation: bellPulse 2s infinite; }
@@ -703,7 +785,6 @@ function AppContent() {
         .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
         .product-list-view { display: flex; flex-direction: column; gap: 16px; margin-top: 30px; width: 100%; }
         @media (max-width: 768px) {
-          .header-nav { display: none; }
           .product-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
           .product-list-view { gap: 12px; }
           .notif-dropdown { position: fixed; top: 70px; right: 10px; left: 10px; width: auto; }
@@ -717,9 +798,6 @@ function AppContent() {
   );
 }
 
-/**
- * Componente auxiliar para a lista de sugestões.
- */
 function SuggestionsList({ list, onSelect }: { list: SuggestionItem[], onSelect: (e: any, name: string, type: any) => void }) {
   return (
     <div className="suggestions-dropdown animate">
