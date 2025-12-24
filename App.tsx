@@ -6,7 +6,8 @@ import {
   Route,
   useNavigate,
   useLocation,
-  Link
+  Link,
+  useParams
 } from 'react-router-dom';
 import { 
   Search, ShoppingCart, Store as StoreIcon, Trash2, History, X, Moon, Sun, 
@@ -37,13 +38,116 @@ interface RenderItem {
   id: string;
 }
 
+// Added helper function to format notification timestamps
+const formatTime = (timestamp: number) => {
+  const diff = Date.now() - timestamp;
+  if (diff < 60000) return 'Agora';
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m atrás`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h atrás`;
+  return new Date(timestamp).toLocaleDateString();
+};
+
+/**
+ * Componente interno para gerenciar a lógica da página de detalhes da loja
+ * permitindo o carregamento via ID na URL.
+ */
+function StoreDetailView({ 
+  onAddToCart, 
+  onStoreClick 
+}: { 
+  onAddToCart: (p: ProductOffer) => void,
+  onStoreClick: (id: string) => void
+}) {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [isFlyerExpanded, setIsFlyerExpanded] = useState(false);
+
+  const store = useMemo(() => MOCK_STORES.find(s => s.id === id), [id]);
+  
+  const storeProducts = useMemo(() => {
+    if (!store) return [];
+    return RAW_PRODUCTS.filter(p => p.supermercado === store.name).map(p => ({
+      id: `prod_${p.id}_${store.id}`,
+      baseProductId: String(p.id),
+      name: p.produto,
+      category: p.categoria,
+      storeId: store.id,
+      storeName: store.name,
+      storeColor: store.color,
+      price: p.promocao ? (p.preco_promocional || p.preco_normal) : p.preco_normal,
+      originalPrice: p.preco_normal,
+      unit: p.produto.split(' ').slice(-1)[0],
+      imageUrl: "",
+      isPromo: p.promocao
+    }));
+  }, [store]);
+
+  const renderLogo = (logo: string, size: string = '1em', alt: string = '') => {
+    if (logo.startsWith('http')) {
+      return <img src={logo} alt={alt} style={{ width: size, height: size, objectFit: 'contain', borderRadius: '4px' }} />;
+    }
+    return logo;
+  };
+
+  if (!store) {
+    return (
+      <div style={{ textAlign: 'center', padding: '100px 20px' }}>
+        <h2 style={{ fontWeight: 800 }}>Loja não encontrada</h2>
+        <p style={{ color: 'var(--text-muted)', marginBottom: '20px' }}>O supermercado solicitado não existe ou foi removido.</p>
+        <button className="btn btn-primary" onClick={() => navigate('/stores')}>Ver todas as lojas</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="animate">
+      <div style={{ marginBottom: '40px' }}>
+        <div className="flex items-center justify-between" style={{ marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+          <div className="flex items-center gap-4">
+            <button className="btn btn-ghost" onClick={() => navigate('/stores')} style={{padding: '10px'}}><ArrowLeft size={20} /></button>
+            <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
+              <div style={{fontSize: '2.5rem', width: '64px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--card-bg)', borderRadius: '16px', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)'}}>
+                {renderLogo(store.logo, '40px', store.name)}
+              </div>
+              <div>
+                <h2 style={{fontWeight: 800, fontSize: '1.8rem', color: 'var(--text-main)'}}>{store.name}</h2>
+                <div style={{color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 600}}><MapPin size={14} style={{ display: 'inline', marginRight: '4px' }} />{store.distance} • Todos os produtos</div>
+              </div>
+            </div>
+          </div>
+          {store.flyerUrl && (
+            <button className={`btn ${isFlyerExpanded ? 'btn-ghost' : 'btn-primary'}`} onClick={() => setIsFlyerExpanded(!isFlyerExpanded)} style={{ borderRadius: '14px', gap: '10px', padding: '12px 24px', boxShadow: isFlyerExpanded ? 'none' : '0 8px 20px rgba(16, 185, 129, 0.25)' }}>
+              {isFlyerExpanded ? <ChevronUp size={20} /> : <BookOpen size={20} />}
+              <span style={{ fontWeight: 800 }}>{isFlyerExpanded ? 'Ocultar Panfleto' : 'Ver Panfleto'}</span>
+            </button>
+          )}
+        </div>
+        {isFlyerExpanded && store.flyerUrl && <StoreFlyer store={store} />}
+      </div>
+      <div className="flex items-center justify-between" style={{ marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
+        <div className="flex items-center gap-4">
+          <div style={{ display: 'flex', background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '4px' }}>
+            <button onClick={() => setViewMode('grid')} className={`btn-icon ${viewMode === 'grid' ? 'active' : ''}`} title="Ver em blocos"><LayoutGrid size={18} /></button>
+            <button onClick={() => setViewMode('list')} className={`btn-icon ${viewMode === 'list' ? 'active' : ''}`} title="Ver em lista"><List size={18} /></button>
+          </div>
+        </div>
+      </div>
+      <div className={viewMode === 'grid' ? "product-grid" : "product-list-view"}>
+        {storeProducts.map(product => (
+          <ProductCard key={product.id} product={product} onAdd={onAddToCart} layout={viewMode} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [query, setQuery] = useState('');
   const [storeQuery, setStoreQuery] = useState('');
-  const [selectedStoreData, setSelectedStoreData] = useState<Store | null>(null);
   const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
@@ -55,7 +159,6 @@ function AppContent() {
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('ecofeira_theme') === 'dark');
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [isClearModalOpen, setIsClearModalOpen] = useState(false);
-  const [isFlyerExpanded, setIsFlyerExpanded] = useState(false);
   
   const searchRef = useRef<HTMLDivElement>(null);
   const headerSearchRef = useRef<HTMLDivElement>(null);
@@ -67,7 +170,6 @@ function AppContent() {
   const [sortBy, setSortBy] = useState<SortOption>('price_asc');
 
   const categories = useMemo(() => Array.from(new Set(RAW_PRODUCTS.map(p => p.categoria))), []);
-  const stores = useMemo(() => MOCK_STORES, []);
 
   const filteredStores = useMemo(() => {
     return MOCK_STORES.filter(s => s.name.toLowerCase().includes(storeQuery.toLowerCase()));
@@ -107,7 +209,7 @@ function AppContent() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Hydration and Notification Logic
+  // Hydration
   useEffect(() => {
     const savedHistory = localStorage.getItem('ecofeira_history');
     if (savedHistory) try { setSearchHistory(JSON.parse(savedHistory)); } catch (e) {}
@@ -123,7 +225,7 @@ function AppContent() {
   useEffect(() => { localStorage.setItem('ecofeira_cart', JSON.stringify(cart)); }, [cart]);
   useEffect(() => { localStorage.setItem('ecofeira_notifs', JSON.stringify(notifications)); }, [notifications]);
 
-  // Automated Notification Generator
+  // Automated Notifications
   useEffect(() => {
     if (cart.length === 0 && searchHistory.length === 0) return;
 
@@ -223,46 +325,15 @@ function AppContent() {
     }
   };
 
-  const openStoreDetail = (store: Store) => {
-    setSelectedStoreData(store);
-    setIsFlyerExpanded(false);
-    const storeProducts = RAW_PRODUCTS.filter(p => p.supermercado === store.name).map(p => ({
-      id: `prod_${p.id}`,
-      baseProductId: String(p.id),
-      name: p.produto,
-      category: p.categoria,
-      storeId: store.id,
-      storeName: store.name,
-      storeColor: store.color,
-      price: p.promocao ? (p.preco_promocional || p.preco_normal) : p.preco_normal,
-      originalPrice: p.preco_normal,
-      unit: p.produto.split(' ').slice(-1)[0],
-      imageUrl: "",
-      isPromo: p.promocao
-    }));
-    setSearchResults(storeProducts);
-    navigate(`/store/${store.id}`);
-  };
-
   const handleStoreClick = useCallback((storeId: string) => {
-    const store = MOCK_STORES.find(s => s.id === storeId);
-    if (store) {
-      openStoreDetail(store);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    navigate(`/store/${storeId}`);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [navigate]);
-
-  const renderLogo = (logo: string, size: string = '1em', alt: string = '') => {
-    if (logo.startsWith('http')) {
-      return <img src={logo} alt={alt} style={{ width: size, height: size, objectFit: 'contain', borderRadius: '4px' }} />;
-    }
-    return logo;
-  };
 
   const filteredAndSortedResults = useMemo(() => {
     let results = [...searchResults];
     if (selectedCategory) results = results.filter(p => p.category === selectedCategory);
-    if (selectedStore && !location.pathname.startsWith('/store/')) results = results.filter(p => p.storeId === selectedStore);
+    if (selectedStore) results = results.filter(p => p.storeId === selectedStore);
     if (onlyPromos) results = results.filter(p => p.isPromo);
     
     results.sort((a, b) => {
@@ -271,7 +342,7 @@ function AppContent() {
       return a.name.localeCompare(b.name);
     });
     return results;
-  }, [searchResults, selectedCategory, selectedStore, onlyPromos, sortBy, location.pathname]);
+  }, [searchResults, selectedCategory, selectedStore, onlyPromos, sortBy]);
 
   const itemsToRender = useMemo<RenderItem[]>(() => {
     const products: RenderItem[] = filteredAndSortedResults.map(p => ({
@@ -319,33 +390,11 @@ function AppContent() {
   const totalItems = useMemo(() => cart.reduce((acc, item) => acc + item.quantity, 0), [cart]);
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
-  const SuggestionsList = ({ list }: { list: SuggestionItem[] }) => (
-    <div className="suggestions-dropdown animate">
-      <div style={{ padding: '8px 12px', fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', borderBottom: '1px solid var(--border)', marginBottom: '4px' }}>
-        Sugestões no Banco
-      </div>
-      {list.length > 0 ? (
-        list.map((item, idx) => (
-          <div key={idx} className="suggestion-item" onClick={() => handleSearch(undefined, item.name, item.type)}>
-            <div className="suggestion-icon-wrapper">{item.type === 'category' ? <Tag size={14} /> : <Package size={14} />}</div>
-            <div className="suggestion-content">
-              <span className="suggestion-text">{item.name}</span>
-              <span className="suggestion-type-label">{item.type === 'category' ? 'Categoria' : 'Produto'}</span>
-            </div>
-            <ChevronRight size={14} className="suggestion-chevron" />
-          </div>
-        ))
-      ) : (
-        <div className="suggestion-item-empty">Sem resultados para "{query}"</div>
-      )}
-    </div>
-  );
-
-  const formatTime = (ts: number) => {
-    const diff = Date.now() - ts;
-    if (diff < 60000) return 'Agora mesmo';
-    if (diff < 3600000) return `${Math.floor(diff / 60000)} min atrás`;
-    return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const renderLogo = (logo: string, size: string = '1em', alt: string = '') => {
+    if (logo.startsWith('http')) {
+      return <img src={logo} alt={alt} style={{ width: size, height: size, objectFit: 'contain', borderRadius: '4px' }} />;
+    }
+    return logo;
   };
 
   return (
@@ -367,7 +416,7 @@ function AppContent() {
                   <Search className="search-icon" size={18} />
                   <input type="text" className="search-input" placeholder="Buscar..." value={query} onChange={(e) => handleInputChange(e.target.value)} onFocus={() => query.length > 0 && setShowSuggestions(true)} />
                 </form>
-                {showSuggestions && <SuggestionsList list={suggestions} />}
+                {showSuggestions && <SuggestionsList list={suggestions} onSelect={handleSearch} />}
               </div>
             )}
           </nav>
@@ -437,7 +486,7 @@ function AppContent() {
                   <input type="text" placeholder="O que você precisa hoje?" style={{width: '100%', padding: '18px 120px 18px 55px', borderRadius: '20px', border: '2px solid var(--border)', background: 'var(--card-bg)', color: 'var(--text-main)', fontSize: '1.1rem', outline: 'none', boxShadow: 'var(--shadow-md)', position: 'relative', zIndex: 5}} value={query} onChange={(e) => handleInputChange(e.target.value)} onFocus={() => query.length > 0 && setShowSuggestions(true)} />
                   <button type="submit" className="btn btn-primary" style={{position: 'absolute', right: '8px', top: '8px', bottom: '8px', borderRadius: '14px', zIndex: 10}}>Buscar</button>
                  </form>
-                 {showSuggestions && <SuggestionsList list={suggestions} />}
+                 {showSuggestions && <SuggestionsList list={suggestions} onSelect={handleSearch} />}
               </div>
               {searchHistory.length > 0 && (
                 <div style={{ marginBottom: '30px', textAlign: 'left' }}>
@@ -470,7 +519,7 @@ function AppContent() {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
                 {filteredStores.map(store => (
-                  <div key={store.id} className="card store-card" onClick={() => openStoreDetail(store)} style={{cursor: 'pointer', padding: '24px', textAlign: 'center'}}>
+                  <div key={store.id} className="card store-card" onClick={() => handleStoreClick(store.id)} style={{cursor: 'pointer', padding: '24px', textAlign: 'center'}}>
                     <div style={{height: '80px', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem'}}>{renderLogo(store.logo, '80px', store.name)}</div>
                     <h3 style={{fontWeight: 800, fontSize: '1.25rem', marginBottom: '8px'}}>{store.name}</h3>
                     <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: 'var(--text-muted)', fontSize: '0.9rem'}}><MapPin size={14} /> <span>{store.distance} da sua localização</span></div>
@@ -510,7 +559,7 @@ function AppContent() {
                 <div style={{ width: '1px', background: 'var(--border)', margin: '0 5px' }}></div>
                 {categories.map(cat => (<button key={cat} onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)} className={`btn ${selectedCategory === cat ? 'btn-primary' : 'btn-ghost'}`} style={{ fontSize: '0.75rem', padding: '6px 12px', whiteSpace: 'nowrap' }}>{cat}</button>))}
                 <div style={{ width: '1px', background: 'var(--border)', margin: '0 5px' }}></div>
-                {stores.map(store => (<button key={store.id} onClick={() => setSelectedStore(selectedStore === store.id ? null : store.id)} className={`btn ${selectedStore === store.id ? 'btn-primary' : 'btn-ghost'}`} style={{ fontSize: '0.75rem', padding: '6px 12px', whiteSpace: 'nowrap' }}>{renderLogo(store.logo, '16px', store.name)} {store.name}</button>))}
+                {MOCK_STORES.map(store => (<button key={store.id} onClick={() => setSelectedStore(selectedStore === store.id ? null : store.id)} className={`btn ${selectedStore === store.id ? 'btn-primary' : 'btn-ghost'}`} style={{ fontSize: '0.75rem', padding: '6px 12px', whiteSpace: 'nowrap' }}>{renderLogo(store.logo, '16px', store.name)} {store.name}</button>))}
               </div>
               {isSearching ? (
                 <div style={{ textAlign: 'center', padding: '80px 0' }}>
@@ -536,50 +585,13 @@ function AppContent() {
             </div>
           } />
 
-          <Route path="/store/:id" element={
-            <div className="animate">
-              {selectedStoreData && (
-                <div style={{ marginBottom: '40px' }}>
-                  <div className="flex items-center justify-between" style={{ marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
-                    <div className="flex items-center gap-4">
-                      <button className="btn btn-ghost" onClick={() => navigate('/stores')} style={{padding: '10px'}}><ArrowLeft size={20} /></button>
-                      <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
-                        <div style={{fontSize: '2.5rem', width: '64px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--card-bg)', borderRadius: '16px', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)'}}>
-                          {renderLogo(selectedStoreData.logo, '40px', selectedStoreData.name)}
-                        </div>
-                        <div>
-                          <h2 style={{fontWeight: 800, fontSize: '1.8rem', color: 'var(--text-main)'}}>{selectedStoreData.name}</h2>
-                          <div style={{color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 600}}><MapPin size={14} style={{ display: 'inline', marginRight: '4px' }} />{selectedStoreData.distance} • Todos os produtos</div>
-                        </div>
-                      </div>
-                    </div>
-                    {selectedStoreData.flyerUrl && (
-                      <button className={`btn ${isFlyerExpanded ? 'btn-ghost' : 'btn-primary'}`} onClick={() => setIsFlyerExpanded(!isFlyerExpanded)} style={{ borderRadius: '14px', gap: '10px', padding: '12px 24px', boxShadow: isFlyerExpanded ? 'none' : '0 8px 20px rgba(16, 185, 129, 0.25)' }}>
-                        {isFlyerExpanded ? <ChevronUp size={20} /> : <BookOpen size={20} />}
-                        <span style={{ fontWeight: 800 }}>{isFlyerExpanded ? 'Ocultar Panfleto' : 'Ver Panfleto'}</span>
-                      </button>
-                    )}
-                  </div>
-                  {isFlyerExpanded && selectedStoreData.flyerUrl && <StoreFlyer store={selectedStoreData} />}
-                </div>
-              )}
-              <div className="flex items-center justify-between" style={{ marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
-                <div className="flex items-center gap-4">
-                  <div style={{ display: 'flex', background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '4px' }}>
-                    <button onClick={() => setViewMode('grid')} className={`btn-icon ${viewMode === 'grid' ? 'active' : ''}`} title="Ver em blocos"><LayoutGrid size={18} /></button>
-                    <button onClick={() => setViewMode('list')} className={`btn-icon ${viewMode === 'list' ? 'active' : ''}`} title="Ver em lista"><List size={18} /></button>
-                  </div>
-                </div>
-              </div>
-              <div className={viewMode === 'grid' ? "product-grid" : "product-list-view"}>
-                {itemsToRender.map(item => (
-                  item.type === 'product' && item.data ? (
-                    <ProductCard key={item.id} product={item.data} onAdd={addToCart} layout={viewMode} />
-                  ) : null
-                ))}
-              </div>
-            </div>
-          } />
+          {/* Rota compatível com links diretos ex: #/store/store_bh */}
+          <Route path="/store/:id" element={<StoreDetailView onAddToCart={addToCart} onStoreClick={handleStoreClick} />} />
+          
+          {/* Suporte extra para links curtos ex: #/store_bh (opcional, mapeando IDs conhecidos) */}
+          {MOCK_STORES.map(s => (
+            <Route key={`alias-${s.id}`} path={`/${s.id}`} element={<StoreDetailView onAddToCart={addToCart} onStoreClick={handleStoreClick} />} />
+          ))}
 
           <Route path="/cart" element={
             <div className="animate" style={{maxWidth: '800px', margin: '0 auto'}}>
@@ -648,7 +660,6 @@ function AppContent() {
 
       <button onClick={scrollToTop} className={`btn-back-to-top ${showBackToTop ? 'show' : ''}`} aria-label="Voltar ao topo"><ArrowUp size={24} /></button>
 
-      {/* Fix: Using dangerouslySetInnerHTML for raw CSS block to avoid potential parser issues in TSX */}
       <style dangerouslySetInnerHTML={{ __html: `
         .badge-count { position: absolute; top: -5px; right: -5px; background: var(--primary); color: white; border-radius: 50%; width: 20px; height: 20px; font-size: 0.7rem; display: flex; align-items: center; justify-content: center; font-weight: 800; box-shadow: 0 0 0 2px var(--card-bg); }
         @keyframes pop { 0% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
@@ -702,6 +713,33 @@ function AppContent() {
         .nav-link.active { color: var(--primary); }
         .store-card:hover { transform: translateY(-8px); border-color: var(--primary); }
       ` }} />
+    </div>
+  );
+}
+
+/**
+ * Componente auxiliar para a lista de sugestões.
+ */
+function SuggestionsList({ list, onSelect }: { list: SuggestionItem[], onSelect: (e: any, name: string, type: any) => void }) {
+  return (
+    <div className="suggestions-dropdown animate">
+      <div style={{ padding: '8px 12px', fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', borderBottom: '1px solid var(--border)', marginBottom: '4px' }}>
+        Sugestões no Banco
+      </div>
+      {list.length > 0 ? (
+        list.map((item, idx) => (
+          <div key={idx} className="suggestion-item" onClick={(e) => onSelect(e, item.name, item.type)}>
+            <div className="suggestion-icon-wrapper">{item.type === 'category' ? <Tag size={14} /> : <Package size={14} />}</div>
+            <div className="suggestion-content">
+              <span className="suggestion-text">{item.name}</span>
+              <span className="suggestion-type-label">{item.type === 'category' ? 'Categoria' : 'Produto'}</span>
+            </div>
+            <ChevronRight size={14} className="suggestion-chevron" />
+          </div>
+        ))
+      ) : (
+        <div className="suggestion-item-empty">Sem resultados</div>
+      )}
     </div>
   );
 }
