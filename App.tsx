@@ -473,16 +473,9 @@ function AppContent() {
       <header>
         <div className="container flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <button 
-              className="btn btn-ghost mobile-only" 
-              onClick={() => setIsMenuOpen(true)}
-              style={{ padding: '8px' }}
-            >
-              <MenuIcon size={24} />
-            </button>
             <Link to="/" className="logo">
               <div className="logo-icon"><StoreIcon size={20} /></div>
-              <span className="hide-mobile">EcoFeira</span>
+              <span>EcoFeira</span>
             </Link>
           </div>
 
@@ -553,6 +546,14 @@ function AppContent() {
               <ShoppingCart size={20} />
               {totalItems > 0 && <span className="badge-count animate-pop">{totalItems}</span>}
             </Link>
+
+            <button 
+              className="btn btn-ghost mobile-only" 
+              onClick={() => setIsMenuOpen(true)}
+              style={{ padding: '10px' }}
+            >
+              <MenuIcon size={24} />
+            </button>
           </div>
         </div>
       </header>
@@ -561,7 +562,7 @@ function AppContent() {
       {isMenuOpen && (
         <>
           <div className="sidebar-overlay" onClick={() => setIsMenuOpen(false)} />
-          <div className="sidebar-menu animate-slide-right">
+          <div className="sidebar-menu animate-slide-left">
             <div className="sidebar-header">
               <div className="logo">
                 <div className="logo-icon"><StoreIcon size={18} /></div>
@@ -961,15 +962,15 @@ function AppContent() {
         
         /* Sidebar Styles */
         .sidebar-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); z-index: 1900; }
-        .sidebar-menu { position: fixed; top: 0; left: 0; bottom: 0; width: 280px; background: var(--card-bg); z-index: 2000; box-shadow: 10px 0 30px rgba(0,0,0,0.1); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+        .sidebar-menu { position: fixed; top: 0; right: 0; bottom: 0; width: 280px; background: var(--card-bg); z-index: 2000; box-shadow: -10px 0 30px rgba(0,0,0,0.1); border-left: 1px solid var(--border); display: flex; flex-direction: column; }
         .sidebar-header { padding: 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
         .sidebar-content { flex: 1; padding: 20px; display: flex; flex-direction: column; gap: 8px; }
         .sidebar-link { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 12px; font-weight: 700; color: var(--text-main); text-decoration: none; transition: all 0.2s; }
         .sidebar-link:hover { background: var(--primary-light); color: var(--primary); }
         .sidebar-footer { padding: 20px; border-top: 1px solid var(--border); }
         
-        @keyframes slideRight { from { transform: translateX(-100%); } to { transform: translateX(0); } }
-        .animate-slide-right { animation: slideRight 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+        @keyframes slideLeft { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        .animate-slide-left { animation: slideLeft 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
 
         .suggestions-dropdown { position: absolute; top: calc(100% + 8px); left: 0; right: 0; background: var(--card-bg); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: 20px; box-shadow: 0 10px 40px -10px rgba(0,0,0,0.2); z-index: 1000; overflow: hidden; padding: 8px; }
         .suggestion-item { display: flex; align-items: center; gap: 14px; padding: 10px 14px; cursor: pointer; border-radius: 12px; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
