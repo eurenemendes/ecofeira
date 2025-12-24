@@ -9,11 +9,13 @@ import {
   Link,
   useParams
 } from 'react-router-dom';
+// Fix: Added ShoppingBasket to lucide-react imports
 import { 
   Search, ShoppingCart, Store as StoreIcon, Trash2, History, X, Moon, Sun, 
   Tag, ArrowUp, ChevronRight, Package, Check, AlertTriangle, LayoutGrid, 
   List, ArrowLeft, MapPin, BookOpen, ChevronUp, Bell, BellOff, Info, 
-  TrendingDown, Sparkles, Clock, ArrowUpDown, Heart
+  TrendingDown, Sparkles, Clock, ArrowUpDown, Heart, Scale, BarChart2,
+  ShoppingBasket
 } from 'lucide-react';
 import { searchProductsWithGemini } from './services/geminiService';
 import { ProductOffer, CartItem, Store, AppNotification } from './types';
@@ -50,12 +52,16 @@ function StoreDetailView({
   onAddToCart, 
   onStoreClick,
   onToggleFavorite,
-  favorites
+  favorites,
+  compareList,
+  onToggleCompare
 }: { 
   onAddToCart: (p: ProductOffer) => void,
   onStoreClick: (id: string) => void,
   onToggleFavorite: (p: ProductOffer) => void,
-  favorites: string[]
+  favorites: string[],
+  compareList: ProductOffer[],
+  onToggleCompare: (p: ProductOffer) => void
 }) {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -141,6 +147,8 @@ function StoreDetailView({
             layout={viewMode} 
             isFavorite={favorites.includes(product.id)}
             onToggleFavorite={onToggleFavorite}
+            isComparing={compareList.some(p => p.id === product.id)}
+            onToggleCompare={onToggleCompare}
           />
         ))}
       </div>
@@ -160,6 +168,8 @@ function AppContent() {
   const [searchResults, setSearchResults] = useState<ProductOffer[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
+  const [compareList, setCompareList] = useState<ProductOffer[]>([]);
+  const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
@@ -178,8 +188,11 @@ function AppContent() {
 
   const categories = useMemo(() => Array.from(new Set(RAW_PRODUCTS.map(p => p.categoria))), []);
 
+  // Fix: Added filteredStores definition to avoid "Cannot find name 'filteredStores'" error
   const filteredStores = useMemo(() => {
-    return MOCK_STORES.filter(s => s.name.toLowerCase().includes(storeQuery.toLowerCase()));
+    return MOCK_STORES.filter(s => 
+      s.name.toLowerCase().includes(storeQuery.toLowerCase())
+    );
   }, [storeQuery]);
 
   useEffect(() => {
@@ -245,8 +258,23 @@ function AppContent() {
     });
   }, []);
 
+  const toggleCompare = useCallback((product: ProductOffer) => {
+    setCompareList(prev => {
+      const isAlreadyIn = prev.some(p => p.id === product.id);
+      if (isAlreadyIn) {
+        return prev.filter(p => p.id !== product.id);
+      }
+      if (prev.length >= 3) {
+        // Notificação opcional aqui
+        return prev;
+      }
+      return [...prev, product];
+    });
+  }, []);
+
+  const clearCompare = () => setCompareList([]);
+
   const favoriteProducts = useMemo(() => {
-    // Collect all unique offers across all stores for favorited products
     const allOffers: ProductOffer[] = RAW_PRODUCTS.flatMap(p => {
       const store = MOCK_STORES.find(s => s.name === p.supermercado);
       if (!store) return [];
@@ -598,6 +626,8 @@ function AppContent() {
                       onStoreClick={handleStoreClick}
                       isFavorite={true}
                       onToggleFavorite={toggleFavorite}
+                      isComparing={compareList.some(p => p.id === product.id)}
+                      onToggleCompare={toggleCompare}
                     />
                   ))}
                 </div>
@@ -653,6 +683,8 @@ function AppContent() {
                         layout={viewMode}
                         isFavorite={favorites.includes(item.data.id)}
                         onToggleFavorite={toggleFavorite}
+                        isComparing={compareList.some(p => p.id === item.data.id)}
+                        onToggleCompare={toggleCompare}
                       />
                     ) : (
                       <InlineAdBanner key={item.id} layout={viewMode} />
@@ -668,10 +700,10 @@ function AppContent() {
             </div>
           } />
 
-          <Route path="/store/:id" element={<StoreDetailView onAddToCart={addToCart} onStoreClick={handleStoreClick} onToggleFavorite={toggleFavorite} favorites={favorites} />} />
+          <Route path="/store/:id" element={<StoreDetailView onAddToCart={addToCart} onStoreClick={handleStoreClick} onToggleFavorite={toggleFavorite} favorites={favorites} compareList={compareList} onToggleCompare={toggleCompare} />} />
           
           {MOCK_STORES.map(s => (
-            <Route key={`alias-${s.id}`} path={`/${s.id}`} element={<StoreDetailView onAddToCart={addToCart} onStoreClick={handleStoreClick} onToggleFavorite={toggleFavorite} favorites={favorites} />} />
+            <Route key={`alias-${s.id}`} path={`/${s.id}`} element={<StoreDetailView onAddToCart={addToCart} onStoreClick={handleStoreClick} onToggleFavorite={toggleFavorite} favorites={favorites} compareList={compareList} onToggleCompare={toggleCompare} />} />
           ))}
 
           <Route path="/cart" element={
@@ -724,6 +756,122 @@ function AppContent() {
           } />
         </Routes>
       </main>
+
+      {/* Floating Compare Bar */}
+      {compareList.length > 0 && (
+        <div className="compare-floating-bar animate-pop">
+          <div className="container flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Scale size={20} color="var(--primary)" />
+                <span style={{ fontWeight: 800, fontSize: '0.9rem' }}>{compareList.length} / 3 Itens</span>
+              </div>
+              <div className="flex gap-2">
+                {compareList.map(item => (
+                  <div key={item.id} className="compare-mini-item">
+                    <ShoppingBasket size={14} color="var(--primary)" style={{ opacity: 0.5 }} />
+                    <button onClick={() => toggleCompare(item)} className="mini-remove"><X size={10} /></button>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button className="btn btn-ghost" onClick={clearCompare} style={{ fontSize: '0.75rem', padding: '6px 12px' }}>Limpar</button>
+              <button 
+                className="btn btn-primary" 
+                onClick={() => setIsCompareModalOpen(true)}
+                disabled={compareList.length < 2}
+                style={{ fontSize: '0.75rem', padding: '6px 16px', opacity: compareList.length < 2 ? 0.6 : 1 }}
+              >
+                Comparar Agora
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Comparison Modal */}
+      {isCompareModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsCompareModalOpen(false)}>
+          <div className="modal-content comparison-modal animate-pop" onClick={e => e.stopPropagation()} style={{ maxWidth: '900px', width: '95%' }}>
+            <div className="flex justify-between items-center" style={{ marginBottom: '24px' }}>
+              <div className="flex items-center gap-2">
+                <Scale size={24} color="var(--primary)" />
+                <h3 style={{ fontWeight: 800, fontSize: '1.4rem' }}>Comparativo Side-by-Side</h3>
+              </div>
+              <button className="btn btn-ghost" onClick={() => setIsCompareModalOpen(false)} style={{ padding: '8px' }}><X size={24} /></button>
+            </div>
+
+            <div className="comparison-table-wrapper">
+              <table className="comparison-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '200px', textAlign: 'left' }}>Atributo</th>
+                    {compareList.map(item => (
+                      <th key={item.id} style={{ minWidth: '150px' }}>
+                        <div style={{ textAlign: 'center' }}>
+                          <div className="mini-img-placeholder">
+                            <ShoppingBasket size={32} opacity={0.1} color="var(--primary)" />
+                          </div>
+                          <p style={{ fontWeight: 700, fontSize: '0.85rem', marginTop: '10px', height: '2.6em', overflow: 'hidden' }}>{item.name}</p>
+                        </div>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Preço</strong></td>
+                    {compareList.map(item => (
+                      <td key={item.id}>
+                        <div style={{ textAlign: 'center' }}>
+                          <span style={{ fontSize: '1.2rem', fontWeight: 800, color: item.isPromo ? 'var(--danger)' : 'var(--primary)' }}>R$ {item.price.toFixed(2).replace('.', ',')}</span>
+                          {item.isPromo && <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', textDecoration: 'line-through' }}>R$ {item.originalPrice.toFixed(2).replace('.', ',')}</span>}
+                        </div>
+                      </td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <td><strong>Loja</strong></td>
+                    {compareList.map(item => (
+                      <td key={item.id}>
+                        <div className="flex items-center justify-center gap-2">
+                          <span style={{ fontSize: '1.2rem' }}>{MOCK_STORES.find(s => s.id === item.storeId)?.logo}</span>
+                          <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{item.storeName}</span>
+                        </div>
+                      </td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <td><strong>Categoria</strong></td>
+                    {compareList.map(item => (
+                      <td key={item.id} style={{ textAlign: 'center' }}>
+                        <span style={{ fontSize: '0.7rem', background: 'var(--primary-light)', color: 'var(--primary)', padding: '2px 8px', borderRadius: '4px', fontWeight: 800 }}>{item.category}</span>
+                      </td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <td><strong>Ações</strong></td>
+                    {compareList.map(item => (
+                      <td key={item.id}>
+                        <div style={{ textAlign: 'center' }}>
+                          <button 
+                            className="btn btn-primary" 
+                            style={{ fontSize: '0.7rem', padding: '6px 12px' }}
+                            onClick={() => { addToCart(item); setIsCompareModalOpen(false); }}
+                          >
+                            Add à Lista
+                          </button>
+                        </div>
+                      </td>
+                    ))}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isClearModalOpen && (
         <div className="modal-overlay" onClick={() => setIsClearModalOpen(false)}>
@@ -793,6 +941,79 @@ function AppContent() {
         .nav-link:hover { color: var(--primary); background: var(--primary-light); }
         .nav-link.active { color: var(--primary); }
         .store-card:hover { transform: translateY(-8px); border-color: var(--primary); }
+        
+        /* Compare Styles */
+        .compare-floating-bar {
+          position: fixed;
+          bottom: 24px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: var(--card-bg);
+          border: 2px solid var(--primary);
+          border-radius: 20px;
+          padding: 12px 24px;
+          box-shadow: 0 10px 30px rgba(16, 185, 129, 0.2);
+          z-index: 1500;
+          width: 90%;
+          max-width: 600px;
+        }
+        .compare-mini-item {
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
+          background: var(--bg);
+          border: 1px solid var(--border);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          position: relative;
+        }
+        .mini-remove {
+          position: absolute;
+          top: -6px;
+          right: -6px;
+          background: var(--danger);
+          color: white;
+          border: none;
+          width: 16px;
+          height: 16px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          font-size: 8px;
+        }
+        .comparison-table-wrapper {
+          overflow-x: auto;
+          margin-top: 20px;
+          border-radius: 16px;
+          border: 1px solid var(--border);
+        }
+        .comparison-table {
+          width: 100%;
+          border-collapse: collapse;
+          background: var(--card-bg);
+        }
+        .comparison-table th, .comparison-table td {
+          padding: 16px;
+          border-bottom: 1px solid var(--border);
+          border-right: 1px solid var(--border);
+        }
+        .comparison-table th { background: var(--bg); color: var(--text-main); font-weight: 800; }
+        .comparison-table tr:last-child td { border-bottom: none; }
+        .comparison-table td:last-child, .comparison-table th:last-child { border-right: none; }
+        .mini-img-placeholder {
+          width: 80px;
+          height: 80px;
+          background: var(--bg);
+          border-radius: 12px;
+          margin: 0 auto;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid var(--border);
+        }
       ` }} />
     </div>
   );

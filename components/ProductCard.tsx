@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { ProductOffer } from '../types';
-import { Plus, ShoppingBasket, Tag, Check, Heart } from 'lucide-react';
+import { Plus, ShoppingBasket, Tag, Check, Heart, Scale } from 'lucide-react';
 import { MOCK_STORES } from '../constants';
 
 interface ProductCardProps {
@@ -11,6 +11,8 @@ interface ProductCardProps {
   layout?: 'grid' | 'list';
   isFavorite?: boolean;
   onToggleFavorite?: (product: ProductOffer) => void;
+  isComparing?: boolean;
+  onToggleCompare?: (product: ProductOffer) => void;
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ 
@@ -19,7 +21,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
   onStoreClick, 
   layout = 'grid',
   isFavorite = false,
-  onToggleFavorite
+  onToggleFavorite,
+  isComparing = false,
+  onToggleCompare
 }) => {
   const [added, setAdded] = useState(false);
   const savings = product.originalPrice - product.price;
@@ -38,6 +42,13 @@ const ProductCard: React.FC<ProductCardProps> = ({
     e.stopPropagation();
     if (onToggleFavorite) {
       onToggleFavorite(product);
+    }
+  };
+
+  const handleToggleCompare = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onToggleCompare) {
+      onToggleCompare(product);
     }
   };
 
@@ -87,33 +98,48 @@ const ProductCard: React.FC<ProductCardProps> = ({
           </div>
         )}
 
-        {/* Favorite Heart for List view */}
-        <button 
-          onClick={handleToggleFavorite}
-          style={{
-            position: 'absolute',
-            top: '10px',
-            right: '10px',
-            background: 'var(--card-bg)',
-            border: '1px solid var(--border)',
-            borderRadius: '50%',
-            width: '32px',
-            height: '32px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            zIndex: 15,
-            padding: 0,
-            color: isFavorite ? '#f43f5e' : 'var(--text-muted)',
-            transition: 'all 0.2s ease',
-            boxShadow: 'var(--shadow-sm)'
-          }}
-        >
-          <Heart size={16} fill={isFavorite ? '#f43f5e' : 'none'} />
-        </button>
+        <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '8px', zIndex: 15 }}>
+          <button 
+            onClick={handleToggleCompare}
+            style={{
+              background: isComparing ? 'var(--primary-light)' : 'var(--card-bg)',
+              border: `1px solid ${isComparing ? 'var(--primary)' : 'var(--border)'}`,
+              borderRadius: '50%',
+              width: '32px',
+              height: '32px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: isComparing ? 'var(--primary)' : 'var(--text-muted)',
+              transition: 'all 0.2s ease',
+              boxShadow: 'var(--shadow-sm)'
+            }}
+            title="Comparar este produto"
+          >
+            <Scale size={14} />
+          </button>
+          <button 
+            onClick={handleToggleFavorite}
+            style={{
+              background: 'var(--card-bg)',
+              border: '1px solid var(--border)',
+              borderRadius: '50%',
+              width: '32px',
+              height: '32px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: isFavorite ? '#f43f5e' : 'var(--text-muted)',
+              transition: 'all 0.2s ease',
+              boxShadow: 'var(--shadow-sm)'
+            }}
+          >
+            <Heart size={16} fill={isFavorite ? '#f43f5e' : 'none'} />
+          </button>
+        </div>
 
-        {/* Imagem/Ícone */}
         <div style={{
           background: 'var(--bg)',
           width: '70px',
@@ -128,7 +154,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
           <ShoppingBasket size={32} style={{opacity: 0.2, color: 'var(--primary)'}} />
         </div>
 
-        {/* Conteúdo Central: Nome e Loja */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
           <div>
             <span style={{
@@ -176,7 +201,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
           </div>
         </div>
 
-        {/* Lado Direito: Preço e Ações */}
         <div style={{ 
           display: 'flex', 
           alignItems: 'center', 
@@ -223,7 +247,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
     );
   }
 
-  // Layout Grid
   return (
     <div className="card animate" style={{ position: 'relative' }}>
       {product.isPromo && (
@@ -247,32 +270,51 @@ const ProductCard: React.FC<ProductCardProps> = ({
         </div>
       )}
 
-      {/* Favorite Heart for Grid view */}
-      <button 
-        onClick={handleToggleFavorite}
-        style={{
-          position: 'absolute',
-          top: '12px',
-          right: '12px',
-          background: 'rgba(255, 255, 255, 0.9)',
-          border: 'none',
-          borderRadius: '50%',
-          width: '32px',
-          height: '32px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          zIndex: 5,
-          padding: 0,
-          color: isFavorite ? '#f43f5e' : '#64748b',
-          transition: 'transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-        }}
-        className="favorite-btn"
-      >
-        <Heart size={18} fill={isFavorite ? '#f43f5e' : 'none'} />
-      </button>
+      <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', gap: '8px', zIndex: 5 }}>
+        <button 
+          onClick={handleToggleCompare}
+          style={{
+            background: isComparing ? 'var(--primary-light)' : 'rgba(255, 255, 255, 0.9)',
+            border: isComparing ? '1px solid var(--primary)' : 'none',
+            borderRadius: '50%',
+            width: '32px',
+            height: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            padding: 0,
+            color: isComparing ? 'var(--primary)' : '#64748b',
+            transition: 'all 0.2s',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+          }}
+          className="compare-btn"
+          title="Comparar este produto"
+        >
+          <Scale size={16} />
+        </button>
+        <button 
+          onClick={handleToggleFavorite}
+          style={{
+            background: 'rgba(255, 255, 255, 0.9)',
+            border: 'none',
+            borderRadius: '50%',
+            width: '32px',
+            height: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            padding: 0,
+            color: isFavorite ? '#f43f5e' : '#64748b',
+            transition: 'transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+          }}
+          className="favorite-btn"
+        >
+          <Heart size={18} fill={isFavorite ? '#f43f5e' : 'none'} />
+        </button>
+      </div>
 
       <div className="product-card-image" style={{
         background: 'var(--bg)',
@@ -375,7 +417,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
           border-color: var(--primary) !important;
           transform: scale(1.05);
         }
-        .favorite-btn:hover {
+        .favorite-btn:hover, .compare-btn:hover {
           transform: scale(1.1);
           background: white !important;
         }
