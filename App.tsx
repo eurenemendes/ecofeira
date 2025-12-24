@@ -366,6 +366,15 @@ function App() {
           </nav>
 
           <div className="flex gap-2 items-center">
+            <button 
+              className={`btn btn-ghost mobile-only ${view === AppView.STORES ? 'active' : ''}`} 
+              onClick={() => setView(AppView.STORES)} 
+              style={{ padding: '10px' }}
+              title="Supermercados"
+            >
+              <StoreIcon size={20} />
+            </button>
+
             <div style={{ position: 'relative' }} ref={notifRef}>
               <button 
                 className={`btn btn-ghost ${unreadCount > 0 ? 'notif-pulse' : ''}`} 
@@ -730,6 +739,11 @@ function App() {
         .btn-icon:hover { background: var(--bg); color: var(--text-main); }
         .btn-icon.active { background: var(--primary-light); color: var(--primary); }
         
+        .mobile-only { display: none; }
+        @media (max-width: 768px) {
+          .mobile-only { display: inline-flex; }
+        }
+
         /* Notifications Styles */
         .notif-pulse { 
           animation: bellPulse 2s infinite; 
