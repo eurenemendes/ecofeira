@@ -202,6 +202,41 @@ function AppContent() {
   const [onlyPromos, setOnlyPromos] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('price_asc');
 
+  // EFEITO PARA GOOGLE ANALYTICS E TÍTULOS DINÂMICOS
+  useEffect(() => {
+    let pageTitle = "EcoFeira";
+    const path = location.pathname;
+
+    if (path === '/') {
+      pageTitle = "EcoFeira | Economia Inteligente";
+    } else if (path === '/stores') {
+      pageTitle = "EcoFeira | Supermercados Parceiros";
+    } else if (path === '/favorites') {
+      pageTitle = "EcoFeira | Meus Favoritos";
+    } else if (path === '/cart') {
+      pageTitle = "EcoFeira | Minha Lista de Compras";
+    } else if (path.startsWith('/search')) {
+      const params = new URLSearchParams(location.search);
+      const q = params.get('q');
+      pageTitle = q ? `EcoFeira | Resultados para "${q}"` : "EcoFeira | Pesquisa";
+    } else if (path.startsWith('/store/')) {
+      const storeId = path.split('/').pop();
+      const store = MOCK_STORES.find(s => s.id === storeId);
+      pageTitle = store ? `EcoFeira | ${store.name}` : "EcoFeira | Detalhes da Loja";
+    }
+
+    // Atualiza o título da página no navegador
+    document.title = pageTitle;
+
+    // Reporta para o Google Analytics
+    if (typeof (window as any).gtag === 'function') {
+      (window as any).gtag('config', 'G-DCSKFBSG8T', {
+        page_title: pageTitle,
+        page_path: location.pathname + location.search,
+      });
+    }
+  }, [location]);
+
   const categories = useMemo(() => Array.from(new Set(RAW_PRODUCTS.map(p => p.categoria))), []);
 
   const filteredStores = useMemo(() => {
