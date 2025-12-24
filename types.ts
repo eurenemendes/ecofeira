@@ -14,7 +14,6 @@ export interface Store {
   color: string;
   logo: string;
   distance: string;
-  // Added optional flyerUrl property to fix missing property errors in StoreFlyer component
   flyerUrl?: string;
 }
 
@@ -42,7 +41,8 @@ export enum AppView {
   SEARCH = 'SEARCH',
   CART = 'CART',
   STORES = 'STORES',
-  STORE_DETAIL = 'STORE_DETAIL'
+  STORE_DETAIL = 'STORE_DETAIL',
+  NOTIFICATIONS = 'NOTIFICATIONS'
 }
 
 export interface CartOptimization {
@@ -51,4 +51,16 @@ export interface CartOptimization {
   totalPrice: number;
   missingItems: number;
   items: CartItem[];
+}
+
+export interface AppNotification {
+  id: string;
+  type: 'PROMO' | 'PRICE_DROP' | 'BETTER_DEAL';
+  title: string;
+  message: string;
+  timestamp: number;
+  isRead: boolean;
+  relatedProductId?: string;
+  relatedSearchTerm?: string;
+  discountPercentage?: number;
 }

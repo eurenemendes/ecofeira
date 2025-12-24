@@ -1,8 +1,13 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Search, ShoppingCart, Store as StoreIcon, Trash2, History, X, Moon, Sun, Filter, ArrowUpDown, Tag, ArrowUp, ChevronRight, Package, Check, AlertTriangle, LayoutGrid, List, ArrowLeft, MapPin, BookOpen, ChevronDown, ChevronUp } from 'lucide-react';
+import { 
+  Search, ShoppingCart, Store as StoreIcon, Trash2, History, X, Moon, Sun, 
+  Tag, ArrowUp, ChevronRight, Package, Check, AlertTriangle, LayoutGrid, 
+  List, ArrowLeft, MapPin, BookOpen, ChevronUp, Bell, BellOff, Info, 
+  TrendingDown, Sparkles, Clock, ArrowUpDown
+} from 'lucide-react';
 import { searchProductsWithGemini } from './services/geminiService';
-import { ProductOffer, CartItem, AppView, Store } from './types';
+import { ProductOffer, CartItem, AppView, Store, AppNotification } from './types';
 import { INITIAL_SUGGESTIONS, MOCK_STORES, RAW_PRODUCTS } from './constants';
 import ProductCard from './components/ProductCard';
 import CartOptimizer from './components/CartOptimizer';
@@ -35,6 +40,8 @@ function App() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<ProductOffer[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('ecofeira_theme') === 'dark');
   const [showBackToTop, setShowBackToTop] = useState(false);
@@ -43,6 +50,7 @@ function App() {
   
   const searchRef = useRef<HTMLDivElement>(null);
   const headerSearchRef = useRef<HTMLDivElement>(null);
+  const notifRef = useRef<HTMLDivElement>(null);
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
@@ -74,6 +82,9 @@ function App() {
       ) {
         setShowSuggestions(false);
       }
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setIsNotifOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -87,15 +98,80 @@ function App() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Hydration and Notification Logic
   useEffect(() => {
     const savedHistory = localStorage.getItem('ecofeira_history');
     if (savedHistory) try { setSearchHistory(JSON.parse(savedHistory)); } catch (e) {}
+    
     const savedCart = localStorage.getItem('ecofeira_cart');
     if (savedCart) try { setCart(JSON.parse(savedCart)); } catch (e) {}
+
+    const savedNotifs = localStorage.getItem('ecofeira_notifs');
+    if (savedNotifs) try { setNotifications(JSON.parse(savedNotifs)); } catch (e) {}
   }, []);
 
   useEffect(() => { localStorage.setItem('ecofeira_history', JSON.stringify(searchHistory)); }, [searchHistory]);
   useEffect(() => { localStorage.setItem('ecofeira_cart', JSON.stringify(cart)); }, [cart]);
+  useEffect(() => { localStorage.setItem('ecofeira_notifs', JSON.stringify(notifications)); }, [notifications]);
+
+  // Automated Notification Generator (Simulating Background Checks)
+  useEffect(() => {
+    if (cart.length === 0 && searchHistory.length === 0) return;
+
+    const generateNotifications = () => {
+      const newNotifs: AppNotification[] = [];
+      
+      // Check for better deals for items in cart
+      cart.forEach(item => {
+        const others = RAW_PRODUCTS.filter(p => p.produto === item.name && p.supermercado !== item.storeName);
+        others.forEach(other => {
+          const otherPrice = other.promocao ? (other.preco_promocional || other.preco_normal) : other.preco_normal;
+          if (otherPrice < item.price) {
+            const id = `notif_better_${item.id}_${other.supermercado}`;
+            if (!notifications.some(n => n.id === id)) {
+              newNotifs.push({
+                id,
+                type: 'BETTER_DEAL',
+                title: 'Preço melhor encontrado!',
+                message: `${item.name} está mais barato no ${other.supermercado}: R$ ${otherPrice.toFixed(2).replace('.', ',')}`,
+                timestamp: Date.now(),
+                isRead: false,
+                relatedSearchTerm: item.name,
+                discountPercentage: Math.round(((item.price - otherPrice) / item.price) * 100)
+              });
+            }
+          }
+        });
+      });
+
+      // Check for promos on history items
+      searchHistory.slice(0, 3).forEach(term => {
+        const matchingPromos = RAW_PRODUCTS.filter(p => p.produto.toLowerCase().includes(term.toLowerCase()) && p.promocao);
+        matchingPromos.forEach(promo => {
+          const id = `notif_promo_${term}_${promo.id}`;
+          if (!notifications.some(n => n.id === id)) {
+            newNotifs.push({
+              id,
+              type: 'PROMO',
+              title: 'Promoção para você!',
+              message: `Vimos que buscou por "${term}". O ${promo.produto} está em oferta no ${promo.supermercado}!`,
+              timestamp: Date.now(),
+              isRead: false,
+              relatedSearchTerm: term,
+              discountPercentage: Math.round(((promo.preco_normal - (promo.preco_promocional || 0)) / promo.preco_normal) * 100)
+            });
+          }
+        });
+      });
+
+      if (newNotifs.length > 0) {
+        setNotifications(prev => [...newNotifs, ...prev].slice(0, 20));
+      }
+    };
+
+    const timer = setTimeout(generateNotifications, 3000); // Check 3s after activity
+    return () => clearTimeout(timer);
+  }, [cart, searchHistory, notifications.length]);
 
   const handleInputChange = (val: string) => {
     setQuery(val);
@@ -142,7 +218,7 @@ function App() {
   const openStoreDetail = (store: Store) => {
     setSelectedStoreData(store);
     setView(AppView.STORE_DETAIL);
-    setIsFlyerExpanded(false); // Reset flyer state when switching stores
+    setIsFlyerExpanded(false);
     const storeProducts = RAW_PRODUCTS.filter(p => p.supermercado === store.name).map(p => ({
       id: `prod_${p.id}`,
       baseProductId: String(p.id),
@@ -223,6 +299,16 @@ function App() {
     setIsClearModalOpen(false);
   };
 
+  const markAllNotifsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+  };
+
+  const clearNotifications = () => {
+    setNotifications([]);
+    setIsNotifOpen(false);
+  };
+
+  const unreadCount = useMemo(() => notifications.filter(n => !n.isRead).length, [notifications]);
   const totalItems = useMemo(() => cart.reduce((acc, item) => acc + item.quantity, 0), [cart]);
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -248,6 +334,13 @@ function App() {
     </div>
   );
 
+  const formatTime = (ts: number) => {
+    const diff = Date.now() - ts;
+    if (diff < 60000) return 'Agora mesmo';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)} min atrás`;
+    return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
   return (
     <div className="app-wrapper">
       <header>
@@ -272,7 +365,70 @@ function App() {
             )}
           </nav>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            <div style={{ position: 'relative' }} ref={notifRef}>
+              <button 
+                className={`btn btn-ghost ${unreadCount > 0 ? 'notif-pulse' : ''}`} 
+                onClick={() => {
+                  setIsNotifOpen(!isNotifOpen);
+                  if (!isNotifOpen) markAllNotifsRead();
+                }} 
+                style={{ padding: '10px' }}
+              >
+                {notifications.length === 0 ? <BellOff size={20} /> : <Bell size={20} />}
+                {unreadCount > 0 && <span className="badge-count animate-pop" style={{ background: '#f59e0b' }}>{unreadCount}</span>}
+              </button>
+
+              {isNotifOpen && (
+                <div className="notif-dropdown animate-pop">
+                  <div className="flex justify-between items-center" style={{ padding: '16px', borderBottom: '1px solid var(--border)' }}>
+                    <h4 style={{ fontWeight: 800, fontSize: '0.9rem' }}>Alertas de Preço</h4>
+                    <button onClick={clearNotifications} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer' }}>LIMPAR</button>
+                  </div>
+                  <div className="notif-scroll-area">
+                    {notifications.length === 0 ? (
+                      <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        <Info size={24} style={{ opacity: 0.3, marginBottom: '8px' }} />
+                        <p style={{ fontSize: '0.8rem' }}>Você não tem alertas no momento.</p>
+                      </div>
+                    ) : (
+                      notifications.map(n => (
+                        <div 
+                          key={n.id} 
+                          className="notif-item" 
+                          onClick={() => {
+                            if (n.relatedSearchTerm) handleSearch(undefined, n.relatedSearchTerm);
+                            setIsNotifOpen(false);
+                          }}
+                        >
+                          <div className={`notif-type-icon ${n.type}`}>
+                             {n.type === 'PROMO' ? <Sparkles size={14} /> : <TrendingDown size={14} />}
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div className="flex justify-between items-start">
+                              <h5 style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)' }}>{n.title}</h5>
+                              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <Clock size={10} /> {formatTime(n.timestamp)}
+                              </span>
+                            </div>
+                            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px', lineHeight: 1.3 }}>{n.message}</p>
+                            {n.discountPercentage && (
+                              <span style={{ display: 'inline-block', marginTop: '6px', background: 'var(--primary-light)', color: 'var(--primary)', fontSize: '0.65rem', fontWeight: 800, padding: '2px 6px', borderRadius: '4px' }}>
+                                ECONOMIA DE {n.discountPercentage}%
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  <div style={{ padding: '12px', textAlign: 'center', background: 'var(--bg)', fontSize: '0.7rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border)' }}>
+                    Monitoramos preços em tempo real para você.
+                  </div>
+                </div>
+              )}
+            </div>
+
             <button className="btn btn-ghost" onClick={() => setIsDarkMode(!isDarkMode)} style={{ padding: '10px' }}>
               {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
             </button>
@@ -434,7 +590,7 @@ function App() {
                   <ArrowUpDown size={16} color="var(--text-muted)" />
                   <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortOption)} style={{ background: 'var(--card-bg)', color: 'var(--text-main)', border: '1px solid var(--border)', padding: '6px 12px', borderRadius: '10px', fontSize: '0.85rem', outline: 'none' }}>
                     <option value="price_asc">Menor Preço</option>
-                    <option value="price_desc">Maior Preço</option>
+                    <option value="price_desc">Major Preço</option>
                     <option value="name_asc">Nome (A-Z)</option>
                   </select>
                 </div>
@@ -574,6 +730,58 @@ function App() {
         .btn-icon:hover { background: var(--bg); color: var(--text-main); }
         .btn-icon.active { background: var(--primary-light); color: var(--primary); }
         
+        /* Notifications Styles */
+        .notif-pulse { 
+          animation: bellPulse 2s infinite; 
+        }
+        @keyframes bellPulse {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.1); background: var(--primary-light); }
+          100% { transform: scale(1); }
+        }
+        .notif-dropdown {
+          position: absolute;
+          top: calc(100% + 12px);
+          right: 0;
+          width: 320px;
+          background: var(--card-bg);
+          border: 1px solid var(--border);
+          border-radius: 20px;
+          box-shadow: var(--shadow-lg);
+          z-index: 1000;
+          overflow: hidden;
+        }
+        .notif-scroll-area {
+          max-height: 400px;
+          overflow-y: auto;
+        }
+        .notif-item {
+          display: flex;
+          gap: 12px;
+          padding: 16px;
+          cursor: pointer;
+          border-bottom: 1px solid var(--border);
+          transition: background 0.2s;
+        }
+        .notif-item:hover {
+          background: var(--bg);
+        }
+        .notif-item:last-child {
+          border-bottom: none;
+        }
+        .notif-type-icon {
+          width: 32px;
+          height: 32px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .notif-type-icon.PROMO { background: #dcfce7; color: #16a34a; }
+        .notif-type-icon.BETTER_DEAL { background: #fef3c7; color: #d97706; }
+        .notif-type-icon.PRICE_DROP { background: #dbeafe; color: #2563eb; }
+
         .product-grid {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -596,6 +804,13 @@ function App() {
           }
           .product-list-view { 
             gap: 12px; 
+          }
+          .notif-dropdown {
+            position: fixed;
+            top: 70px;
+            right: 10px;
+            left: 10px;
+            width: auto;
           }
         }
         
