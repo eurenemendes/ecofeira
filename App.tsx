@@ -14,7 +14,7 @@ import {
   Tag, ArrowUp, ChevronRight, Package, Check, AlertTriangle, LayoutGrid, 
   List, ArrowLeft, MapPin, BookOpen, ChevronUp, Bell, BellOff, Info, 
   TrendingDown, Sparkles, Clock, ArrowUpDown, Heart, Scale, BarChart2,
-  ShoppingBasket, Plus
+  ShoppingBasket, Plus, Menu as MenuIcon
 } from 'lucide-react';
 import { searchProductsWithGemini } from './services/geminiService';
 import { ProductOffer, CartItem, Store, AppNotification } from './types';
@@ -171,6 +171,7 @@ function AppContent() {
   const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('ecofeira_theme') === 'dark');
   const [showBackToTop, setShowBackToTop] = useState(false);
@@ -471,10 +472,19 @@ function AppContent() {
     <div className="app-wrapper">
       <header>
         <div className="container flex justify-between items-center">
-          <Link to="/" className="logo">
-            <div className="logo-icon"><StoreIcon size={20} /></div>
-            <span>EcoFeira</span>
-          </Link>
+          <div className="flex items-center gap-2">
+            <button 
+              className="btn btn-ghost mobile-only" 
+              onClick={() => setIsMenuOpen(true)}
+              style={{ padding: '8px' }}
+            >
+              <MenuIcon size={24} />
+            </button>
+            <Link to="/" className="logo">
+              <div className="logo-icon"><StoreIcon size={20} /></div>
+              <span className="hide-mobile">EcoFeira</span>
+            </Link>
+          </div>
 
           <nav className="header-nav flex gap-4 items-center">
             <Link to="/stores" className={`nav-link ${location.pathname === '/stores' ? 'active' : ''}`} data-tooltip="Listar supermercados parceiros">
@@ -496,9 +506,10 @@ function AppContent() {
           </nav>
 
           <div className="flex gap-2 items-center">
-            <Link to="/stores" className={`btn btn-ghost mobile-only ${location.pathname === '/stores' ? 'active' : ''}`} style={{ padding: '10px' }} data-tooltip="Lojas">
-              <StoreIcon size={20} />
-            </Link>
+            {/* Desktop-only: Theme Switcher */}
+            <button className="btn btn-ghost hide-mobile" onClick={() => setIsDarkMode(!isDarkMode)} style={{ padding: '10px' }} data-tooltip={isDarkMode ? "Ativar modo claro" : "Ativar modo escuro"}>
+              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
 
             <div style={{ position: 'relative' }} ref={notifRef}>
               <button className={`btn btn-ghost ${unreadCount > 0 ? 'notif-pulse' : ''}`} onClick={() => { setIsNotifOpen(!isNotifOpen); if (!isNotifOpen) markAllNotifsRead(); }} style={{ padding: '10px' }} data-tooltip="Notificações e alertas">
@@ -538,9 +549,6 @@ function AppContent() {
               )}
             </div>
 
-            <button className="btn btn-ghost" onClick={() => setIsDarkMode(!isDarkMode)} style={{ padding: '10px' }} data-tooltip={isDarkMode ? "Ativar modo claro" : "Ativar modo escuro"}>
-              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-            </button>
             <Link to="/cart" className="btn btn-ghost" style={{ position: 'relative', padding: '10px' }} data-tooltip="Ver minha lista de compras">
               <ShoppingCart size={20} />
               {totalItems > 0 && <span className="badge-count animate-pop">{totalItems}</span>}
@@ -548,6 +556,51 @@ function AppContent() {
           </div>
         </div>
       </header>
+
+      {/* Sidebar Mobile Menu */}
+      {isMenuOpen && (
+        <>
+          <div className="sidebar-overlay" onClick={() => setIsMenuOpen(false)} />
+          <div className="sidebar-menu animate-slide-right">
+            <div className="sidebar-header">
+              <div className="logo">
+                <div className="logo-icon"><StoreIcon size={18} /></div>
+                <span>EcoFeira</span>
+              </div>
+              <button className="btn btn-ghost" onClick={() => setIsMenuOpen(false)} style={{ padding: '8px' }}>
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="sidebar-content">
+              <Link to="/" className="sidebar-link" onClick={() => setIsMenuOpen(false)}>
+                <LayoutGrid size={20} /> Início
+              </Link>
+              <Link to="/stores" className="sidebar-link" onClick={() => setIsMenuOpen(false)}>
+                <StoreIcon size={20} /> Supermercados
+              </Link>
+              <Link to="/favorites" className="sidebar-link" onClick={() => setIsMenuOpen(false)}>
+                <div style={{ position: 'relative' }}>
+                  <Heart size={20} />
+                  {favoritesCount > 0 && <span className="badge-count" style={{ position: 'absolute', top: '-8px', right: '-8px', width: '16px', height: '16px', fontSize: '0.6rem' }}>{favoritesCount}</span>}
+                </div>
+                Meus Favoritos
+              </Link>
+              
+              <div style={{ margin: '20px 0', borderTop: '1px solid var(--border)' }} />
+              
+              <button className="sidebar-link" onClick={() => { setIsDarkMode(!isDarkMode); setIsMenuOpen(false); }} style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}>
+                {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+                Modo {isDarkMode ? 'Claro' : 'Escuro'}
+              </button>
+            </div>
+            
+            <div className="sidebar-footer">
+               <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textAlign: 'center' }}>EcoFeira v1.2.0 • Economize inteligente</p>
+            </div>
+          </div>
+        </>
+      )}
 
       <main className="container" style={{paddingTop: '30px', paddingBottom: '80px'}}>
         <Routes>
@@ -905,6 +958,19 @@ function AppContent() {
         .animate-pop { animation: pop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
         .qty-btn:hover { background: rgba(0,0,0,0.05); }
         .delete-btn:hover { background: rgba(239, 68, 68, 0.15); transform: scale(1.05); }
+        
+        /* Sidebar Styles */
+        .sidebar-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); z-index: 1900; }
+        .sidebar-menu { position: fixed; top: 0; left: 0; bottom: 0; width: 280px; background: var(--card-bg); z-index: 2000; box-shadow: 10px 0 30px rgba(0,0,0,0.1); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+        .sidebar-header { padding: 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+        .sidebar-content { flex: 1; padding: 20px; display: flex; flex-direction: column; gap: 8px; }
+        .sidebar-link { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 12px; font-weight: 700; color: var(--text-main); text-decoration: none; transition: all 0.2s; }
+        .sidebar-link:hover { background: var(--primary-light); color: var(--primary); }
+        .sidebar-footer { padding: 20px; border-top: 1px solid var(--border); }
+        
+        @keyframes slideRight { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+        .animate-slide-right { animation: slideRight 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+
         .suggestions-dropdown { position: absolute; top: calc(100% + 8px); left: 0; right: 0; background: var(--card-bg); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: 20px; box-shadow: 0 10px 40px -10px rgba(0,0,0,0.2); z-index: 1000; overflow: hidden; padding: 8px; }
         .suggestion-item { display: flex; align-items: center; gap: 14px; padding: 10px 14px; cursor: pointer; border-radius: 12px; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
         .suggestion-item:hover { background: var(--primary-light); transform: translateX(4px); }
@@ -924,11 +990,14 @@ function AppContent() {
         .btn-icon { background: none; border: none; padding: 8px; border-radius: 8px; cursor: pointer; color: var(--text-muted); transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
         .btn-icon:hover { background: var(--bg); color: var(--text-main); }
         .btn-icon.active { background: var(--primary-light); color: var(--primary); }
+        
         .mobile-only { display: none; }
+        .hide-mobile { display: inline-flex; }
+
         @media (max-width: 768px) {
           .header-nav { display: none; }
           .mobile-only { display: inline-flex; }
-          .hide-mobile { display: none; }
+          .hide-mobile { display: none !important; }
           .compare-floating-bar {
             left: 50% !important;
             top: auto !important;
