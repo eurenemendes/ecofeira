@@ -137,7 +137,7 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart, onAdd, onDecrement,
               <h4 style={{ fontWeight: 800, fontSize: '1.25rem', color: 'var(--text-main)' }}>
                 Itens em <span style={{ color: 'var(--primary)' }}>{viewingStore.storeName}</span>
               </h4>
-              <button onClick={() => setSelectedStoreId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px' }}>
+              <button onClick={() => setSelectedStoreId(null)} data-tooltip="Fechar detalhes" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px' }}>
                 <X size={24} />
               </button>
             </div>
@@ -175,6 +175,7 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart, onAdd, onDecrement,
                         }}>
                           <button 
                             onClick={() => onDecrement(item.id)}
+                            data-tooltip="Remover um"
                             style={{ background: 'none', border: 'none', padding: '6px 10px', cursor: 'pointer', fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)' }}
                           >
                             -
@@ -182,6 +183,7 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart, onAdd, onDecrement,
                           <span style={{ minWidth: '24px', textAlign: 'center', fontSize: '0.9rem', fontWeight: 800 }}>{item.quantity}</span>
                           <button 
                             onClick={() => onAdd(item)}
+                            data-tooltip="Adicionar mais um"
                             style={{ background: 'none', border: 'none', padding: '6px 10px', cursor: 'pointer', fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)' }}
                           >
                             +
@@ -190,6 +192,7 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart, onAdd, onDecrement,
 
                         <button 
                           onClick={() => onRemove(item.id)}
+                          data-tooltip="Excluir item da lista"
                           style={{ 
                             background: 'rgba(239, 68, 68, 0.08)', 
                             color: 'var(--danger)', 
@@ -255,6 +258,7 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart, onAdd, onDecrement,
                 <button 
                   onClick={() => setSelectedStoreId(bestOption.storeId)}
                   className="view-items-btn"
+                  data-tooltip="Ver itens desta lista"
                 >
                   <Eye size={14} /> Ver Itens
                 </button>
@@ -513,6 +517,7 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart, onAdd, onDecrement,
                         </h5>
                         <button 
                           onClick={() => setSelectedStoreId(opt.storeId)}
+                          data-tooltip="Ver itens"
                           style={{
                             background: 'var(--primary-light)',
                             color: 'var(--primary)',

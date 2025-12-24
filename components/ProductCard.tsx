@@ -101,6 +101,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '8px', zIndex: 15 }}>
           <button 
             onClick={handleToggleCompare}
+            data-tooltip={isComparing ? "Remover da comparação" : "Comparar produto"}
             style={{
               background: isComparing ? 'var(--primary-light)' : 'var(--card-bg)',
               border: `1px solid ${isComparing ? 'var(--primary)' : 'var(--border)'}`,
@@ -115,12 +116,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
               transition: 'all 0.2s ease',
               boxShadow: 'var(--shadow-sm)'
             }}
-            title="Comparar este produto"
           >
             <Scale size={14} />
           </button>
           <button 
             onClick={handleToggleFavorite}
+            data-tooltip={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
             style={{
               background: 'var(--card-bg)',
               border: '1px solid var(--border)',
@@ -226,6 +227,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
           <button 
             className={`btn ${added ? 'btn-success' : 'btn-primary'}`} 
+            data-tooltip={added ? "Adicionado" : "Adicionar à lista"}
             style={{
               padding: '0', 
               borderRadius: '12px',
@@ -273,6 +275,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
       <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', gap: '8px', zIndex: 5 }}>
         <button 
           onClick={handleToggleCompare}
+          data-tooltip={isComparing ? "Remover da comparação" : "Comparar produto"}
           style={{
             background: isComparing ? 'var(--primary-light)' : 'rgba(255, 255, 255, 0.9)',
             border: isComparing ? '1px solid var(--primary)' : 'none',
@@ -289,12 +292,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
             boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
           }}
           className="compare-btn"
-          title="Comparar este produto"
         >
           <Scale size={16} />
         </button>
         <button 
           onClick={handleToggleFavorite}
+          data-tooltip={isFavorite ? "Remover dos favoritos" : "Favoritar"}
           style={{
             background: 'rgba(255, 255, 255, 0.9)',
             border: 'none',
@@ -354,6 +357,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
           <div 
             onClick={handleStoreClick}
+            data-tooltip={`Ver mais em ${product.storeName}`}
             style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
             className="store-link"
           >
@@ -392,6 +396,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             </div>
             <button 
               className={`btn ${added ? 'btn-success' : 'btn-primary'}`} 
+              data-tooltip={added ? "Adicionado" : "Adicionar à lista"}
               style={{
                 padding: '0', 
                 borderRadius: '10px',

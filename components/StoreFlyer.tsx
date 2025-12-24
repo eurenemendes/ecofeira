@@ -75,7 +75,7 @@ const StoreFlyer: React.FC<StoreFlyerProps> = ({ store }) => {
               onClick={prevSlide}
               className="btn btn-ghost" 
               style={{ padding: '8px', borderRadius: '10px', minWidth: '40px' }}
-              title="Anterior"
+              data-tooltip="Página anterior"
             >
               <ChevronLeft size={20} />
             </button>
@@ -98,7 +98,7 @@ const StoreFlyer: React.FC<StoreFlyerProps> = ({ store }) => {
               onClick={nextSlide}
               className="btn btn-ghost" 
               style={{ padding: '8px', borderRadius: '10px', minWidth: '40px' }}
-              title="Próximo"
+              data-tooltip="Próxima página"
             >
               <ChevronRight size={20} />
             </button>

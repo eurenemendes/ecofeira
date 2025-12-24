@@ -9,13 +9,12 @@ import {
   Link,
   useParams
 } from 'react-router-dom';
-// Fix: Added ShoppingBasket to lucide-react imports
 import { 
   Search, ShoppingCart, Store as StoreIcon, Trash2, History, X, Moon, Sun, 
   Tag, ArrowUp, ChevronRight, Package, Check, AlertTriangle, LayoutGrid, 
   List, ArrowLeft, MapPin, BookOpen, ChevronUp, Bell, BellOff, Info, 
   TrendingDown, Sparkles, Clock, ArrowUpDown, Heart, Scale, BarChart2,
-  ShoppingBasket
+  ShoppingBasket, Plus
 } from 'lucide-react';
 import { searchProductsWithGemini } from './services/geminiService';
 import { ProductOffer, CartItem, Store, AppNotification } from './types';
@@ -110,7 +109,7 @@ function StoreDetailView({
       <div style={{ marginBottom: '40px' }}>
         <div className="flex items-center justify-between" style={{ marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
           <div className="flex items-center gap-4">
-            <button className="btn btn-ghost" onClick={() => navigate('/stores')} style={{padding: '10px'}}><ArrowLeft size={20} /></button>
+            <button className="btn btn-ghost" onClick={() => navigate('/stores')} data-tooltip="Voltar para lojas" style={{padding: '10px'}}><ArrowLeft size={20} /></button>
             <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
               <div style={{fontSize: '2.5rem', width: '64px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--card-bg)', borderRadius: '16px', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)'}}>
                 {renderLogo(store.logo, '40px', store.name)}
@@ -133,8 +132,8 @@ function StoreDetailView({
       <div className="flex items-center justify-between" style={{ marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
         <div className="flex items-center gap-4">
           <div style={{ display: 'flex', background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '4px' }}>
-            <button onClick={() => setViewMode('grid')} className={`btn-icon ${viewMode === 'grid' ? 'active' : ''}`} title="Ver em blocos"><LayoutGrid size={18} /></button>
-            <button onClick={() => setViewMode('list')} className={`btn-icon ${viewMode === 'list' ? 'active' : ''}`} title="Ver em lista"><List size={18} /></button>
+            <button onClick={() => setViewMode('grid')} className={`btn-icon ${viewMode === 'grid' ? 'active' : ''}`} data-tooltip="Visualização em grade"><LayoutGrid size={18} /></button>
+            <button onClick={() => setViewMode('list')} className={`btn-icon ${viewMode === 'list' ? 'active' : ''}`} data-tooltip="Visualização em lista"><List size={18} /></button>
           </div>
         </div>
       </div>
@@ -188,7 +187,6 @@ function AppContent() {
 
   const categories = useMemo(() => Array.from(new Set(RAW_PRODUCTS.map(p => p.categoria))), []);
 
-  // Fix: Added filteredStores definition to avoid "Cannot find name 'filteredStores'" error
   const filteredStores = useMemo(() => {
     return MOCK_STORES.filter(s => 
       s.name.toLowerCase().includes(storeQuery.toLowerCase())
@@ -265,7 +263,6 @@ function AppContent() {
         return prev.filter(p => p.id !== product.id);
       }
       if (prev.length >= 3) {
-        // Notificação opcional aqui
         return prev;
       }
       return [...prev, product];
@@ -480,10 +477,10 @@ function AppContent() {
           </Link>
 
           <nav className="header-nav flex gap-4 items-center">
-            <Link to="/stores" className={`nav-link ${location.pathname === '/stores' ? 'active' : ''}`}>
+            <Link to="/stores" className={`nav-link ${location.pathname === '/stores' ? 'active' : ''}`} data-tooltip="Listar supermercados parceiros">
               Supermercados
             </Link>
-            <Link to="/favorites" className={`nav-link ${location.pathname === '/favorites' ? 'active' : ''}`} style={{ position: 'relative' }}>
+            <Link to="/favorites" className={`nav-link ${location.pathname === '/favorites' ? 'active' : ''}`} style={{ position: 'relative' }} data-tooltip="Seus produtos favoritados">
               Favoritos
               {favoritesCount > 0 && <span className="badge-count animate-pop" style={{ position: 'absolute', top: '-2px', right: '-8px', width: '16px', height: '16px', fontSize: '0.6rem' }}>{favoritesCount}</span>}
             </Link>
@@ -499,12 +496,12 @@ function AppContent() {
           </nav>
 
           <div className="flex gap-2 items-center">
-            <Link to="/stores" className={`btn btn-ghost mobile-only ${location.pathname === '/stores' ? 'active' : ''}`} style={{ padding: '10px' }} title="Supermercados">
+            <Link to="/stores" className={`btn btn-ghost mobile-only ${location.pathname === '/stores' ? 'active' : ''}`} style={{ padding: '10px' }} data-tooltip="Lojas">
               <StoreIcon size={20} />
             </Link>
 
             <div style={{ position: 'relative' }} ref={notifRef}>
-              <button className={`btn btn-ghost ${unreadCount > 0 ? 'notif-pulse' : ''}`} onClick={() => { setIsNotifOpen(!isNotifOpen); if (!isNotifOpen) markAllNotifsRead(); }} style={{ padding: '10px' }}>
+              <button className={`btn btn-ghost ${unreadCount > 0 ? 'notif-pulse' : ''}`} onClick={() => { setIsNotifOpen(!isNotifOpen); if (!isNotifOpen) markAllNotifsRead(); }} style={{ padding: '10px' }} data-tooltip="Notificações e alertas">
                 {notifications.length === 0 ? <BellOff size={20} /> : <Bell size={20} />}
                 {unreadCount > 0 && <span className="badge-count animate-pop" style={{ background: '#f59e0b' }}>{unreadCount}</span>}
               </button>
@@ -541,8 +538,10 @@ function AppContent() {
               )}
             </div>
 
-            <button className="btn btn-ghost" onClick={() => setIsDarkMode(!isDarkMode)} style={{ padding: '10px' }}>{isDarkMode ? <Sun size={20} /> : <Moon size={20} />}</button>
-            <Link to="/cart" className="btn btn-ghost" style={{ position: 'relative', padding: '10px' }}>
+            <button className="btn btn-ghost" onClick={() => setIsDarkMode(!isDarkMode)} style={{ padding: '10px' }} data-tooltip={isDarkMode ? "Ativar modo claro" : "Ativar modo escuro"}>
+              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+            <Link to="/cart" className="btn btn-ghost" style={{ position: 'relative', padding: '10px' }} data-tooltip="Ver minha lista de compras">
               <ShoppingCart size={20} />
               {totalItems > 0 && <span className="badge-count animate-pop">{totalItems}</span>}
             </Link>
@@ -639,15 +638,15 @@ function AppContent() {
             <div className="animate">
               <div className="flex items-center justify-between" style={{ marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
                 <div className="flex items-center gap-2">
-                  <button className="btn btn-ghost" onClick={() => navigate('/')} style={{ padding: '8px' }}><X size={20} /></button>
+                  <button className="btn btn-ghost" onClick={() => navigate('/')} data-tooltip="Fechar resultados" style={{ padding: '8px' }}><X size={20} /></button>
                   <h2 style={{fontWeight: 800, fontSize: '1.25rem'}}>{filteredAndSortedResults.length} resultados para "{query}"</h2>
                 </div>
               </div>
               <div className="flex items-center justify-between" style={{ marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
                 <div className="flex items-center gap-4">
                   <div style={{ display: 'flex', background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '4px' }}>
-                    <button onClick={() => setViewMode('grid')} className={`btn-icon ${viewMode === 'grid' ? 'active' : ''}`} title="Ver em blocos"><LayoutGrid size={18} /></button>
-                    <button onClick={() => setViewMode('list')} className={`btn-icon ${viewMode === 'list' ? 'active' : ''}`} title="Ver em lista"><List size={18} /></button>
+                    <button onClick={() => setViewMode('grid')} className={`btn-icon ${viewMode === 'grid' ? 'active' : ''}`} data-tooltip="Grelha"><LayoutGrid size={18} /></button>
+                    <button onClick={() => setViewMode('list')} className={`btn-icon ${viewMode === 'list' ? 'active' : ''}`} data-tooltip="Lista"><List size={18} /></button>
                   </div>
                   <div className="flex items-center gap-2">
                     <ArrowUpDown size={16} color="var(--text-muted)" />
@@ -739,7 +738,7 @@ function AppContent() {
                               <span style={{ background: 'var(--card-bg)', color: 'var(--text-main)', padding: '6px 0', minWidth: '40px', textAlign: 'center', fontWeight: 800, fontSize: '0.95rem', borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)' }}>{item.quantity}</span>
                               <button onClick={() => addToCart(item)} style={{ background: 'none', color: 'var(--text-main)', border: 'none', padding: '6px 14px', cursor: 'pointer', fontSize: '1.1rem', fontWeight: 700, display: 'flex', alignItems: 'center', transition: 'background 0.2s' }} className="qty-btn">+</button>
                             </div>
-                            <button onClick={() => removeFromCart(item.id)} style={{ color: 'var(--danger)', background: 'rgba(239, 68, 68, 0.08)', border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer', transition: 'all 0.2s' }} className="delete-btn" title="Remover item"><Trash2 size={18} /></button>
+                            <button onClick={() => removeFromCart(item.id)} data-tooltip="Remover item da lista" style={{ color: 'var(--danger)', background: 'rgba(239, 68, 68, 0.08)', border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer', transition: 'all 0.2s' }} className="delete-btn"><Trash2 size={18} /></button>
                           </div>
                         </div>
                       </div>
@@ -757,33 +756,40 @@ function AppContent() {
         </Routes>
       </main>
 
-      {/* Floating Compare Bar */}
+      {/* Floating Compare Bar - Moved to Left Side (Desktop) */}
       {compareList.length > 0 && (
         <div className="compare-floating-bar animate-pop">
-          <div className="container flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Scale size={20} color="var(--primary)" />
-                <span style={{ fontWeight: 800, fontSize: '0.9rem' }}>{compareList.length} / 3 Itens</span>
-              </div>
-              <div className="flex gap-2">
-                {compareList.map(item => (
-                  <div key={item.id} className="compare-mini-item">
-                    <ShoppingBasket size={14} color="var(--primary)" style={{ opacity: 0.5 }} />
-                    <button onClick={() => toggleCompare(item)} className="mini-remove"><X size={10} /></button>
-                  </div>
-                ))}
-              </div>
+          <div className="compare-bar-layout">
+            <div className="compare-header">
+              <Scale size={20} color="var(--primary)" />
+              <span className="compare-count-label">{compareList.length}/3</span>
             </div>
-            <div className="flex gap-2">
-              <button className="btn btn-ghost" onClick={clearCompare} style={{ fontSize: '0.75rem', padding: '6px 12px' }}>Limpar</button>
+            
+            <div className="compare-items-stack">
+              {compareList.map(item => (
+                <div key={item.id} className="compare-mini-item" data-tooltip={`Remover ${item.name}`}>
+                  <ShoppingBasket size={18} color="var(--primary)" style={{ opacity: 0.5 }} />
+                  <button onClick={() => toggleCompare(item)} className="mini-remove"><X size={10} /></button>
+                </div>
+              ))}
+              {Array.from({ length: 3 - compareList.length }).map((_, i) => (
+                <div key={`empty-${i}`} className="compare-mini-item empty">
+                  <Plus size={14} color="var(--border)" />
+                </div>
+              ))}
+            </div>
+
+            <div className="compare-actions-stack">
               <button 
-                className="btn btn-primary" 
+                className="btn btn-primary btn-compare-main" 
                 onClick={() => setIsCompareModalOpen(true)}
                 disabled={compareList.length < 2}
-                style={{ fontSize: '0.75rem', padding: '6px 16px', opacity: compareList.length < 2 ? 0.6 : 1 }}
+                data-tooltip={compareList.length < 2 ? "Selecione ao menos 2 itens" : "Comparar agora"}
               >
-                Comparar Agora
+                <BarChart2 size={18} />
+              </button>
+              <button className="btn btn-ghost btn-clear-mini" onClick={clearCompare} data-tooltip="Limpar tudo">
+                <Trash2 size={14} />
               </button>
             </div>
           </div>
@@ -799,7 +805,7 @@ function AppContent() {
                 <Scale size={24} color="var(--primary)" />
                 <h3 style={{ fontWeight: 800, fontSize: '1.4rem' }}>Comparativo Side-by-Side</h3>
               </div>
-              <button className="btn btn-ghost" onClick={() => setIsCompareModalOpen(false)} style={{ padding: '8px' }}><X size={24} /></button>
+              <button className="btn btn-ghost" onClick={() => setIsCompareModalOpen(false)} style={{ padding: '8px' }} data-tooltip="Fechar comparativo"><X size={24} /></button>
             </div>
 
             <div className="comparison-table-wrapper">
@@ -833,14 +839,17 @@ function AppContent() {
                   </tr>
                   <tr>
                     <td><strong>Loja</strong></td>
-                    {compareList.map(item => (
-                      <td key={item.id}>
-                        <div className="flex items-center justify-center gap-2">
-                          <span style={{ fontSize: '1.2rem' }}>{MOCK_STORES.find(s => s.id === item.storeId)?.logo}</span>
-                          <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{item.storeName}</span>
-                        </div>
-                      </td>
-                    ))}
+                    {compareList.map(item => {
+                      const storeData = MOCK_STORES.find(s => s.id === item.storeId);
+                      return (
+                        <td key={item.id}>
+                          <div className="flex items-center justify-center gap-2">
+                            {renderLogo(storeData?.logo || '', '24px', item.storeName)}
+                            <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{item.storeName}</span>
+                          </div>
+                        </td>
+                      );
+                    })}
                   </tr>
                   <tr>
                     <td><strong>Categoria</strong></td>
@@ -859,6 +868,7 @@ function AppContent() {
                             className="btn btn-primary" 
                             style={{ fontSize: '0.7rem', padding: '6px 12px' }}
                             onClick={() => { addToCart(item); setIsCompareModalOpen(false); }}
+                            data-tooltip="Adicionar este à lista"
                           >
                             Add à Lista
                           </button>
@@ -887,7 +897,7 @@ function AppContent() {
         </div>
       )}
 
-      <button onClick={scrollToTop} className={`btn-back-to-top ${showBackToTop ? 'show' : ''}`} aria-label="Voltar ao topo"><ArrowUp size={24} /></button>
+      <button onClick={scrollToTop} className={`btn-back-to-top ${showBackToTop ? 'show' : ''}`} aria-label="Voltar ao topo" data-tooltip="Voltar ao topo"><ArrowUp size={24} /></button>
 
       <style dangerouslySetInnerHTML={{ __html: `
         .badge-count { position: absolute; top: -5px; right: -5px; background: var(--primary); color: white; border-radius: 50%; width: 20px; height: 20px; font-size: 0.7rem; display: flex; align-items: center; justify-content: center; font-weight: 800; box-shadow: 0 0 0 2px var(--card-bg); }
@@ -918,6 +928,18 @@ function AppContent() {
         @media (max-width: 768px) {
           .header-nav { display: none; }
           .mobile-only { display: inline-flex; }
+          .hide-mobile { display: none; }
+          .compare-floating-bar {
+            left: 50% !important;
+            top: auto !important;
+            bottom: 24px !important;
+            transform: translateX(-50%) !important;
+            width: auto !important;
+            padding: 10px 20px !important;
+            flex-direction: row !important;
+          }
+          .compare-bar-layout { flex-direction: row !important; gap: 15px !important; }
+          .compare-items-stack, .compare-actions-stack { flex-direction: row !important; }
         }
         .notif-pulse { animation: bellPulse 2s infinite; }
         @keyframes bellPulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); background: var(--primary-light); } 100% { transform: scale(1); } }
@@ -942,31 +964,92 @@ function AppContent() {
         .nav-link.active { color: var(--primary); }
         .store-card:hover { transform: translateY(-8px); border-color: var(--primary); }
         
-        /* Compare Styles */
+        /* Optimized Side Comparison Bar */
         .compare-floating-bar {
           position: fixed;
-          bottom: 24px;
-          left: 50%;
-          transform: translateX(-50%);
+          top: 140px;
+          left: 24px;
           background: var(--card-bg);
           border: 2px solid var(--primary);
           border-radius: 20px;
-          padding: 12px 24px;
-          box-shadow: 0 10px 30px rgba(16, 185, 129, 0.2);
+          padding: 16px;
+          box-shadow: 0 15px 40px rgba(16, 185, 129, 0.25);
           z-index: 1500;
-          width: 90%;
-          max-width: 600px;
+          width: 76px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+        .compare-bar-layout {
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+          align-items: center;
+        }
+        .compare-header {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 4px;
+        }
+        .compare-items-stack {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .compare-actions-stack {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          width: 100%;
+          border-top: 1px solid var(--border);
+          padding-top: 16px;
+        }
+        .btn-compare-main {
+          width: 44px !important;
+          height: 44px !important;
+          padding: 0 !important;
+          justify-content: center !important;
+          border-radius: 12px !important;
+          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+        .btn-clear-mini {
+          width: 44px !important;
+          height: 36px !important;
+          padding: 0 !important;
+          justify-content: center !important;
+          border-radius: 10px !important;
+          color: var(--danger) !important;
+          border-color: rgba(239, 68, 68, 0.1) !important;
+        }
+        .btn-compare-main:disabled {
+          background: var(--border);
+          box-shadow: none;
         }
         .compare-mini-item {
-          width: 36px;
-          height: 36px;
-          border-radius: 10px;
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
           background: var(--bg);
           border: 1px solid var(--border);
           display: flex;
           align-items: center;
           justify-content: center;
           position: relative;
+          transition: all 0.2s;
+        }
+        .compare-mini-item:hover:not(.empty) {
+          border-color: var(--primary);
+          background: var(--primary-light);
+        }
+        .compare-mini-item.empty {
+          border-style: dashed;
+          background: transparent;
+        }
+        .compare-count-label {
+          font-weight: 800;
+          font-size: 0.75rem;
+          color: var(--text-main);
         }
         .mini-remove {
           position: absolute;
@@ -975,14 +1058,16 @@ function AppContent() {
           background: var(--danger);
           color: white;
           border: none;
-          width: 16px;
-          height: 16px;
+          width: 18px;
+          height: 18px;
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
-          font-size: 8px;
+          font-size: 10px;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+          z-index: 10;
         }
         .comparison-table-wrapper {
           overflow-x: auto;
