@@ -14,6 +14,12 @@ export interface Store {
   color: string;
   logo: string;
   distance: string;
+  address: {
+    street: string;
+    number: string;
+    neighborhood: string;
+    reference: string;
+  };
   flyerUrl?: string;
 }
 

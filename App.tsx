@@ -30,7 +30,7 @@ type ViewMode = 'grid' | 'list';
 
 interface SuggestionItem {
   name: string;
-  type: 'product' | 'category';
+  type: 'product' | 'category' | 'store' | 'neighborhood';
 }
 
 interface RenderItem {
@@ -38,6 +38,14 @@ interface RenderItem {
   data?: ProductOffer;
   id: string;
 }
+
+// Função para normalizar texto (remover acentos e minúsculas)
+const normalizeText = (text: string) => {
+  return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+};
 
 const formatTime = (timestamp: number) => {
   const diff = Date.now() - timestamp;
@@ -116,7 +124,12 @@ function StoreDetailView({
               </div>
               <div>
                 <h2 style={{fontWeight: 800, fontSize: '1.8rem', color: 'var(--text-main)'}}>{store.name}</h2>
-                <div style={{color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 600}}><MapPin size={14} style={{ display: 'inline', marginRight: '4px' }} />{store.distance} • Todos os produtos</div>
+                <div style={{color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 600, lineHeight: 1.4}}>
+                  <MapPin size={14} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'text-bottom' }} />
+                  {store.address.street}, {store.address.number}, {store.address.neighborhood}
+                  <br />
+                  <span style={{ fontSize: '0.75rem', opacity: 0.8 }}>Ref: {store.address.reference}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -162,7 +175,9 @@ function AppContent() {
   const [query, setQuery] = useState('');
   const [storeQuery, setStoreQuery] = useState('');
   const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
+  const [storeSuggestions, setStoreSuggestions] = useState<SuggestionItem[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showStoreSuggestions, setShowStoreSuggestions] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<ProductOffer[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -178,6 +193,7 @@ function AppContent() {
   const [isClearModalOpen, setIsClearModalOpen] = useState(false);
   
   const searchRef = useRef<HTMLDivElement>(null);
+  const storeSearchRef = useRef<HTMLDivElement>(null);
   const headerSearchRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
 
@@ -189,8 +205,11 @@ function AppContent() {
   const categories = useMemo(() => Array.from(new Set(RAW_PRODUCTS.map(p => p.categoria))), []);
 
   const filteredStores = useMemo(() => {
+    const normalizedQuery = normalizeText(storeQuery);
+    if (!normalizedQuery) return MOCK_STORES;
     return MOCK_STORES.filter(s => 
-      s.name.toLowerCase().includes(storeQuery.toLowerCase())
+      normalizeText(s.name).includes(normalizedQuery) || 
+      normalizeText(s.address.neighborhood).includes(normalizedQuery)
     );
   }, [storeQuery]);
 
@@ -211,6 +230,9 @@ function AppContent() {
         (headerSearchRef.current && !headerSearchRef.current.contains(event.target as Node))
       ) {
         setShowSuggestions(false);
+      }
+      if (storeSearchRef.current && !storeSearchRef.current.contains(event.target as Node)) {
+        setShowStoreSuggestions(false);
       }
       if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
         setIsNotifOpen(false);
@@ -354,12 +376,12 @@ function AppContent() {
   const handleInputChange = (val: string) => {
     setQuery(val);
     if (val.trim().length > 0) {
-      const lowerVal = val.toLowerCase();
+      const normalizedVal = normalizeText(val);
       const categoryMatches: SuggestionItem[] = categories
-        .filter(cat => cat.toLowerCase().includes(lowerVal))
+        .filter(cat => normalizeText(cat).includes(normalizedVal))
         .map(name => ({ name, type: 'category' }));
       const productMatches: SuggestionItem[] = Array.from(new Set(RAW_PRODUCTS
-        .filter(p => p.produto.toLowerCase().includes(lowerVal))
+        .filter(p => normalizeText(p.produto).includes(normalizedVal))
         .map(p => p.produto)))
         .map(name => ({ name, type: 'product' }));
       const combined = [...categoryMatches, ...productMatches].slice(0, 8);
@@ -368,6 +390,27 @@ function AppContent() {
     } else {
       setSuggestions([]);
       setShowSuggestions(false);
+    }
+  };
+
+  const handleStoreInputChange = (val: string) => {
+    setStoreQuery(val);
+    if (val.trim().length > 0) {
+      const normalizedVal = normalizeText(val);
+      const nameMatches: SuggestionItem[] = MOCK_STORES
+        .filter(s => normalizeText(s.name).includes(normalizedVal))
+        .map(s => ({ name: s.name, type: 'store' }));
+      const neighborhoodMatches: SuggestionItem[] = Array.from(new Set(MOCK_STORES
+        .filter(s => normalizeText(s.address.neighborhood).includes(normalizedVal))
+        .map(s => s.address.neighborhood)))
+        .map(name => ({ name, type: 'neighborhood' }));
+      
+      const combined = [...nameMatches, ...neighborhoodMatches].slice(0, 6);
+      setStoreSuggestions(combined);
+      setShowStoreSuggestions(true);
+    } else {
+      setStoreSuggestions([]);
+      setShowStoreSuggestions(false);
     }
   };
 
@@ -393,6 +436,11 @@ function AppContent() {
     } finally {
       setIsSearching(false);
     }
+  };
+
+  const handleStoreSelect = (name: string) => {
+    setStoreQuery(name);
+    setShowStoreSuggestions(false);
   };
 
   const handleStoreClick = useCallback((storeId: string) => {
@@ -640,20 +688,34 @@ function AppContent() {
 
           <Route path="/stores" element={
             <div className="animate">
-              <div className="flex items-center justify-between" style={{ marginBottom: '30px' }}>
-                <h2 style={{fontWeight: 800, fontSize: '2rem'}}>Supermercados Parceiros</h2>
-                <div style={{position: 'relative', maxWidth: '300px', width: '100%'}}>
-                  <Search size={18} style={{position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)'}} />
-                  <input type="text" placeholder="Pesquisar loja..." value={storeQuery} onChange={(e) => setStoreQuery(e.target.value)} style={{padding: '10px 10px 10px 40px', width: '100%', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--card-bg)', color: 'var(--text-main)', fontSize: '0.9rem', outline: 'none'}} />
+              <div className="store-page-header" style={{ marginBottom: '30px' }}>
+                <h2 className="store-page-title">Supermercados Parceiros</h2>
+                <div className="store-search-container" ref={storeSearchRef}>
+                  <Search size={18} className="store-search-icon" />
+                  <input 
+                    type="text" 
+                    placeholder="Nome ou Bairro..." 
+                    className="store-search-input"
+                    value={storeQuery} 
+                    onChange={(e) => handleStoreInputChange(e.target.value)} 
+                    onFocus={() => storeQuery.length > 0 && setShowStoreSuggestions(true)}
+                  />
+                  {showStoreSuggestions && <SuggestionsList list={storeSuggestions} onSelect={(_, name) => handleStoreSelect(name)} isStoreSearch />}
                 </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
+              <div className="store-grid">
                 {filteredStores.map(store => (
                   <div key={store.id} className="card store-card" onClick={() => handleStoreClick(store.id)} style={{cursor: 'pointer', padding: '24px', textAlign: 'center'}}>
                     <div style={{height: '80px', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem'}}>{renderLogo(store.logo, '80px', store.name)}</div>
-                    <h3 style={{fontWeight: 800, fontSize: '1.25rem', marginBottom: '8px'}}>{store.name}</h3>
-                    <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: 'var(--text-muted)', fontSize: '0.9rem'}}><MapPin size={14} /> <span>{store.distance} da sua localização</span></div>
-                    <button className="btn btn-ghost" style={{marginTop: '20px', width: '100%'}}>Ver Ofertas</button>
+                    <h3 style={{fontWeight: 800, fontSize: '1.15rem', marginBottom: '8px', lineHeight: 1.2, height: '2.4em', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>{store.name}</h3>
+                    <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', color: 'var(--text-muted)', fontSize: '0.8rem', lineHeight: 1.3}}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <MapPin size={14} /> <span>{store.address.street}, {store.address.number}</span>
+                      </div>
+                      <span style={{ fontWeight: 700 }}>{store.address.neighborhood}</span>
+                      <span style={{ fontSize: '0.7rem', opacity: 0.7, fontStyle: 'italic' }}>Ref: {store.address.reference}</span>
+                    </div>
+                    <button className="btn btn-ghost" style={{marginTop: '20px', width: '100%', borderRadius: '12px'}}>Ver Ofertas</button>
                   </div>
                 ))}
               </div>
@@ -1010,7 +1072,89 @@ function AppContent() {
           }
           .compare-bar-layout { flex-direction: row !important; gap: 15px !important; }
           .compare-items-stack, .compare-actions-stack { flex-direction: row !important; }
+          
+          /* Store Grid Mobile 2 Columns */
+          .store-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+          }
+          .store-card {
+            padding: 16px !important;
+          }
+          .store-card h3 {
+            font-size: 0.95rem !important;
+          }
+          .store-card .btn-ghost {
+            font-size: 0.75rem !important;
+            padding: 8px !important;
+          }
         }
+        
+        /* Desktop Store Grid */
+        @media (min-width: 769px) {
+          .store-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+          }
+        }
+
+        /* Estilos para o cabeçalho da página de lojas */
+        .store-page-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 20px;
+        }
+        .store-page-title {
+          font-weight: 800;
+          font-size: 2rem;
+        }
+        .store-search-container {
+          position: relative;
+          max-width: 350px;
+          width: 100%;
+        }
+        .store-search-icon {
+          position: absolute;
+          left: 12px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: var(--text-muted);
+          z-index: 10;
+        }
+        .store-search-input {
+          padding: 12px 10px 12px 40px;
+          width: 100%;
+          border-radius: 14px;
+          border: 2px solid var(--border);
+          background: var(--card-bg);
+          color: var(--text-main);
+          font-size: 0.95rem;
+          outline: none;
+          transition: all 0.2s;
+        }
+        .store-search-input:focus {
+          border-color: var(--primary);
+          box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        @media (max-width: 768px) {
+          .store-page-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 16px;
+          }
+          .store-page-title {
+            font-size: 1.5rem;
+            line-height: 1.1;
+          }
+          .store-search-container {
+            max-width: none;
+          }
+        }
+
         .notif-pulse { animation: bellPulse 2s infinite; }
         @keyframes bellPulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); background: var(--primary-light); } 100% { transform: scale(1); } }
         .notif-dropdown { position: absolute; top: calc(100% + 12px); right: 0; width: 320px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 20px; box-shadow: var(--shadow-lg); z-index: 1000; overflow: hidden; }
@@ -1174,25 +1318,45 @@ function AppContent() {
   );
 }
 
-function SuggestionsList({ list, onSelect }: { list: SuggestionItem[], onSelect: (e: any, name: string, type: any) => void }) {
+function SuggestionsList({ 
+  list, 
+  onSelect, 
+  isStoreSearch = false 
+}: { 
+  list: SuggestionItem[], 
+  onSelect: (e: any, name: string, type: any) => void,
+  isStoreSearch?: boolean
+}) {
   return (
     <div className="suggestions-dropdown animate">
       <div style={{ padding: '8px 12px', fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', borderBottom: '1px solid var(--border)', marginBottom: '4px' }}>
-        Sugestões no Banco
+        {isStoreSearch ? 'Sugestões de Estabelecimento' : 'Sugestões no Banco'}
       </div>
       {list.length > 0 ? (
         list.map((item, idx) => (
           <div key={idx} className="suggestion-item" onClick={(e) => onSelect(e, item.name, item.type)}>
-            <div className="suggestion-icon-wrapper">{item.type === 'category' ? <Tag size={14} /> : <Package size={14} />}</div>
+            <div className="suggestion-icon-wrapper">
+              {item.type === 'category' && <Tag size={14} />}
+              {item.type === 'product' && <Package size={14} />}
+              {item.type === 'store' && <StoreIcon size={14} />}
+              {item.type === 'neighborhood' && <MapPin size={14} />}
+            </div>
             <div className="suggestion-content">
               <span className="suggestion-text">{item.name}</span>
-              <span className="suggestion-type-label">{item.type === 'category' ? 'Categoria' : 'Produto'}</span>
+              <span className="suggestion-type-label">
+                {item.type === 'category' && 'Categoria'}
+                {item.type === 'product' && 'Produto'}
+                {item.type === 'store' && 'Supermercado'}
+                {item.type === 'neighborhood' && 'Bairro'}
+              </span>
             </div>
             <ChevronRight size={14} className="suggestion-chevron" />
           </div>
         ))
       ) : (
-        <div className="suggestion-item-empty">Sem resultados</div>
+        <div style={{ padding: '20px', textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+          Sem resultados aproximados
+        </div>
       )}
     </div>
   );

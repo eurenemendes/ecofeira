@@ -7,21 +7,39 @@ export const MOCK_STORES: Store[] = [
     name: 'Supermercados BH',
     color: 'bg-red-500',
     logo: '🍎',
-    distance: '1.2 km'
+    distance: '1.2 km',
+    address: {
+      street: 'Rua das Flores',
+      number: '123',
+      neighborhood: 'Centro',
+      reference: 'Próximo à Praça da Matriz'
+    }
   },
   {
     id: 'store_carrefour',
     name: 'Carrefour',
     color: 'bg-blue-600',
     logo: '🛒',
-    distance: '0.5 km'
+    distance: '0.5 km',
+    address: {
+      street: 'Av. Brasil',
+      number: '4500',
+      neighborhood: 'Jardim América',
+      reference: 'Ao lado do Terminal Rodoviário'
+    }
   },
   {
     id: 'store_extra',
     name: 'Extra',
     color: 'bg-red-600',
     logo: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQOf-t-njVAeC0v0M2Xy5e4Kn9QND636ytb9A&s',
-    distance: '2.0 km'
+    distance: '2.0 km',
+    address: {
+      street: 'Rua Amazonas',
+      number: '88',
+      neighborhood: 'Savassi',
+      reference: 'Em frente ao Shopping'
+    }
   },
   {
     id: 'store_pao',
@@ -29,6 +47,12 @@ export const MOCK_STORES: Store[] = [
     color: 'bg-green-700',
     logo: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRL5Wc0BCEz604XzlbPWbs0eWwVhRErL_Rbbg&s',
     distance: '1.5 km',
+    address: {
+      street: 'Alameda dos Anjos',
+      number: '10',
+      neighborhood: 'Lourdes',
+      reference: 'Esquina com Rua da Paz'
+    },
     flyerUrl: 'https://iframesb.netlify.app/'
   },
   {
@@ -37,6 +61,12 @@ export const MOCK_STORES: Store[] = [
     color: 'bg-blue-800',
     logo: '🏗️',
     distance: '3.2 km',
+    address: {
+      street: 'Rua das Palmeiras',
+      number: '777',
+      neighborhood: 'Funcionários',
+      reference: 'Atrás do Hospital Central'
+    },
     flyerUrl: 'https://iframesb.netlify.app/'
   }
 ];

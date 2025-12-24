@@ -547,7 +547,7 @@ const CartOptimizer: React.FC<CartOptimizerProps> = ({ cart, onAdd, onDecrement,
                       <div className="flex items-center gap-3" style={{ marginTop: '2px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                               <MapPin size={12} />
-                              {storeInfo?.distance}
+                              {storeInfo?.address.neighborhood}
                           </div>
                           <div style={{ 
                               display: 'flex',
