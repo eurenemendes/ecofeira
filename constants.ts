@@ -1,6 +1,11 @@
 
 import { Store } from './types';
 
+// Configurações de Duração dos Banners (em milissegundos)
+export const BANNER_HOME_DURATION = 6000; // Banner retangular principal na home
+export const BANNER_AD_GRID_DURATION = 5000; // Banner quadrado entre itens (modo grade)
+export const BANNER_AD_LIST_DURATION = 4000; // Banner horizontal entre itens (modo lista)
+
 export const MOCK_STORES: Store[] = [
   {
     id: 'store_bh',
