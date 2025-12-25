@@ -643,10 +643,6 @@ function AppContent() {
             <Link to="/stores" className={`nav-link ${location.pathname === '/stores' ? 'active' : ''}`} data-tooltip="Listar supermercados parceiros">
               Supermercados
             </Link>
-            <Link to="/favorites" className={`nav-link ${location.pathname === '/favorites' ? 'active' : ''}`} style={{ position: 'relative' }} data-tooltip="Seus produtos favoritados">
-              Favoritos
-              {favoritesCount > 0 && <span className="badge-count animate-pop" style={{ position: 'absolute', top: '-2px', right: '-8px', width: '16px', height: '16px', fontSize: '0.6rem' }}>{favoritesCount}</span>}
-            </Link>
             {location.pathname !== '/' && location.pathname !== '/stores' && location.pathname !== '/favorites' && location.pathname !== '/promocoes' && (
               <div className="search-container" ref={headerSearchRef}>
                 <form onSubmit={(e) => handleSearch(e)}>
@@ -662,6 +658,12 @@ function AppContent() {
             {/* Supermercados Mobile Button */}
             <Link to="/stores" className="btn btn-ghost mobile-only" style={{ padding: '10px' }} data-tooltip="Supermercados">
               <StoreIcon size={20} />
+            </Link>
+
+            {/* Favoritos Icon Button (Desktop) - Replaces the text link as requested */}
+            <Link to="/favorites" className={`btn btn-ghost hide-mobile ${location.pathname === '/favorites' ? 'active' : ''}`} style={{ padding: '10px', position: 'relative' }} data-tooltip="Meus Favoritos">
+              <Heart size={20} fill={favoritesCount > 0 && location.pathname === '/favorites' ? 'currentColor' : 'none'} />
+              {favoritesCount > 0 && <span className="badge-count animate-pop" style={{ position: 'absolute', top: '2px', right: '2px', width: '16px', height: '16px', fontSize: '0.6rem' }}>{favoritesCount}</span>}
             </Link>
 
             {/* Desktop-only: Theme Switcher */}
@@ -1506,146 +1508,4 @@ function AppContent() {
           box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
         }
         .btn-clear-mini {
-          width: 44px !important;
-          height: 36px !important;
-          padding: 0 !important;
-          justify-content: center !important;
-          border-radius: 10px !important;
-          color: var(--danger) !important;
-          border-color: rgba(239, 68, 68, 0.1) !important;
-        }
-        .btn-compare-main:disabled {
-          background: var(--border);
-          box-shadow: none;
-        }
-        .compare-mini-item {
-          width: 44px;
-          height: 44px;
-          border-radius: 12px;
-          background: var(--bg);
-          border: 1px solid var(--border);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          position: relative;
-          transition: all 0.2s;
-        }
-        .compare-mini-item:hover:not(.empty) {
-          border-color: var(--primary);
-          background: var(--primary-light);
-        }
-        .compare-mini-item.empty {
-          border-style: dashed;
-          background: transparent;
-        }
-        .compare-count-label {
-          font-weight: 800;
-          font-size: 0.75rem;
-          color: var(--text-main);
-        }
-        .mini-remove {
-          position: absolute;
-          top: -6px;
-          right: -6px;
-          background: var(--danger);
-          color: white;
-          border: none;
-          width: 18px;
-          height: 18px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          font-size: 10px;
-          box-shadow: 0 2px 6px rgba(0,0,0,0.25);
-          z-index: 10;
-        }
-        .comparison-table-wrapper {
-          overflow-x: auto;
-          margin-top: 20px;
-          border-radius: 16px;
-          border: 1px solid var(--border);
-        }
-        .comparison-table {
-          width: 100%;
-          border-collapse: collapse;
-          background: var(--card-bg);
-        }
-        .comparison-table th, .comparison-table td {
-          padding: 16px;
-          border-bottom: 1px solid var(--border);
-          border-right: 1px solid var(--border);
-        }
-        .comparison-table th { background: var(--bg); color: var(--text-main); font-weight: 800; }
-        .comparison-table tr:last-child td { border-bottom: none; }
-        .comparison-table td:last-child, .comparison-table th:last-child { border-right: none; }
-        .mini-img-placeholder {
-          width: 80px;
-          height: 80px;
-          background: var(--bg);
-          border-radius: 12px;
-          margin: 0 auto;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border: 1px solid var(--border);
-        }
-      ` }} />
-    </div>
-  );
-}
-
-function SuggestionsList({ 
-  list, 
-  onSelect, 
-  isStoreSearch = false 
-}: { 
-  list: SuggestionItem[], 
-  onSelect: (e: any, name: string, type: any) => void,
-  isStoreSearch?: boolean
-}) {
-  return (
-    <div className="suggestions-dropdown animate">
-      <div style={{ padding: '8px 12px', fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', borderBottom: '1px solid var(--border)', marginBottom: '4px' }}>
-        {isStoreSearch ? 'Sugestões de Estabelecimento' : 'Sugestões no Banco'}
-      </div>
-      {list.length > 0 ? (
-        list.map((item, idx) => (
-          <div key={idx} className="suggestion-item" onClick={(e) => onSelect(e, item.name, item.type)}>
-            <div className="suggestion-icon-wrapper">
-              {item.type === 'category' && <Tag size={14} />}
-              {item.type === 'product' && <Package size={14} />}
-              {item.type === 'store' && <StoreIcon size={14} />}
-              {item.type === 'neighborhood' && <MapPin size={14} />}
-            </div>
-            <div className="suggestion-content">
-              <span className="suggestion-text">{item.name}</span>
-              <span className="suggestion-type-label">
-                {item.type === 'category' && 'Categoria'}
-                {item.type === 'product' && 'Produto'}
-                {item.type === 'store' && 'Supermercado'}
-                {item.type === 'neighborhood' && 'Bairro'}
-              </span>
-            </div>
-            <ChevronRight size={14} className="suggestion-chevron" />
-          </div>
-        ))
-      ) : (
-        <div style={{ padding: '20px', textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-          Sem resultados aproximados
-        </div>
-      )}
-    </div>
-  );
-}
-
-function App() {
-  return (
-    <Router>
-      <AppContent />
-    </Router>
-  );
-}
-
-export default App;
+          width: 44px !important; height: 36px !important; padding: 0 !important; justify-content: center !important; border-radius: 10px !important; color: var(--danger) !important; border-color: rgba(239, 68, 68, 0.1) !important; } .btn-compare-main:disabled { background: var(--border); box-shadow: none; } .compare-mini-item { width: 44px; height: 44px; border-radius: 12px; background: var(--bg); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; position: relative; transition: all 0.2s; } .compare-mini-item:hover:not(.empty) { border-color: var(--primary); background: var(--primary-light); } .compare-mini-item.empty { border-style: dashed; background: transparent; } .compare-count-label { font-weight: 800; font-size: 0.75rem; color: var(--text-main); } .mini-remove { position: absolute; top: -6px; right: -6px; background: var(--danger); color: white; border: none; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.25); z-index: 10; } .comparison-table-wrapper { overflow-x: auto; margin-top: 20px; border-radius: 16px; border: 1px solid var(--border); } .comparison-table { width: 100%; border-collapse: collapse; background: var(--card-bg); } .comparison-table th, .comparison-table td { padding: 16px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); } .comparison-table th { background: var(--bg); color: var(--text-main); font-weight: 800; } .comparison-table tr:last-child td { border-bottom: none; } .comparison-table td:last-child, .comparison-table th:last-child { border-right: none; } .mini-img-placeholder { width: 80px; height: 80px; background: var(--bg); border-radius: 12px; margin: 0 auto; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); } ` }} /> </div> ); } function SuggestionsList({ list, onSelect, isStoreSearch = false }: { list: SuggestionItem[], onSelect: (e: any, name: string, type: any) => void, isStoreSearch?: boolean }) { return ( <div className="suggestions-dropdown animate"> <div style={{ padding: '8px 12px', fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', borderBottom: '1px solid var(--border)', marginBottom: '4px' }}> {isStoreSearch ? 'Sugestões de Estabelecimento' : 'Sugestões no Banco'} </div> {list.length > 0 ? ( list.map((item, idx) => ( <div key={idx} className="suggestion-item" onClick={(e) => onSelect(e, item.name, item.type)}> <div className="suggestion-icon-wrapper"> {item.type === 'category' && <Tag size={14} />} {item.type === 'product' && <Package size={14} />} {item.type === 'store' && <StoreIcon size={14} />} {item.type === 'neighborhood' && <MapPin size={14} />} </div> <div className="suggestion-content"> <span className="suggestion-text">{item.name}</span> <span className="suggestion-type-label"> {item.type === 'category' && 'Categoria'} {item.type === 'product' && 'Produto'} {item.type === 'store' && 'Supermercado'} {item.type === 'neighborhood' && 'Bairro'} </span> </div> <ChevronRight size={14} className="suggestion-chevron" /> </div> )) ) : ( <div style={{ padding: '20px', textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-muted)' }}> Sem resultados aproximados </div> )} </div> ); } function App() { return ( <Router> <AppContent /> </Router> ); } export default App;
