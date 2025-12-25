@@ -57,24 +57,6 @@ const formatTime = (timestamp: number) => {
   return new Date(timestamp).toLocaleDateString();
 };
 
-// Função para detectar a plataforma de execução
-const getPlatform = () => {
-  const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
-  
-  // Detecção de Android
-  if (/android/i.test(userAgent)) {
-    return 'Android';
-  }
-
-  // Detecção de iOS (iPhone, iPad, iPod)
-  if (/iPad|iPhone|iPod/.test(userAgent) && !(window as any).MSStream) {
-    return 'iOS';
-  }
-
-  // Padrão para Web/Desktop
-  return 'Web';
-};
-
 function StoreDetailView({ 
   onAddToCart, 
   onStoreClick,
@@ -241,7 +223,7 @@ function AppContent() {
     totalPromos: freshProductsPool.filter(p => p.promocao).length
   }), [freshProductsPool]);
 
-  // EFEITO PARA GOOGLE ANALYTICS E TÍTULOS DINÂMICOS COM RASTREAMENTO DE PLATAFORMA
+  // EFEITO PARA GOOGLE ANALYTICS E TÍTULOS DINÂMICOS
   useEffect(() => {
     let pageTitle = "EcoFeira";
     const path = location.pathname;
@@ -268,16 +250,10 @@ function AppContent() {
 
     document.title = pageTitle;
 
-    // Integração com Google Analytics aprimorada
     if (typeof (window as any).gtag === 'function') {
-      const currentPlatform = getPlatform();
       (window as any).gtag('config', 'G-DCSKFBSG8T', {
         page_title: pageTitle,
         page_path: location.pathname + location.search,
-        // Propriedades personalizadas para identificar a plataforma no GA4
-        platform: currentPlatform,
-        app_platform: currentPlatform,
-        environment: currentPlatform.toLowerCase()
       });
     }
   }, [location]);
