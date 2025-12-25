@@ -46,7 +46,7 @@ const SLIDES_DATA: Slide[] = [
   {
     id: 4,
     title: "Clima em Belo Jardim",
-    description: "Planeje suas compras com a previsão do tempo local em tempo real.",
+    description: "",
     isWeather: true,
     gradient: "linear-gradient(135deg, #0ea5e9 0%, #38bdf8 100%)"
   }
