@@ -14,7 +14,7 @@ import {
   Tag, ArrowUp, ChevronRight, Package, Check, AlertTriangle, LayoutGrid, 
   List, ArrowLeft, MapPin, BookOpen, ChevronUp, Bell, BellOff, Info, 
   TrendingDown, Sparkles, Clock, ArrowUpDown, Heart, Scale, BarChart2,
-  ShoppingBasket, Plus, Menu as MenuIcon
+  ShoppingBasket, Plus, Menu as MenuIcon, Filter, Percent, Trophy
 } from 'lucide-react';
 import { searchProductsWithGemini } from './services/geminiService';
 import { ProductOffer, CartItem, Store, AppNotification } from './types';
@@ -26,7 +26,7 @@ import InlineAdBanner from './components/InlineAdBanner';
 import StoreFlyer from './components/StoreFlyer';
 import PartnerTicker from './components/PartnerTicker';
 
-type SortOption = 'price_asc' | 'price_desc' | 'name_asc';
+type SortOption = 'price_asc' | 'price_desc' | 'name_asc' | 'discount_desc';
 type ViewMode = 'grid' | 'list';
 
 interface SuggestionItem {
@@ -193,6 +193,12 @@ function AppContent() {
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [isClearModalOpen, setIsClearModalOpen] = useState(false);
   
+  // Estados para Filtros de Promoção
+  const [promoSearch, setPromoSearch] = useState('');
+  const [selectedPromoCategory, setSelectedPromoCategory] = useState<string | null>(null);
+  const [selectedPromoStore, setSelectedPromoStore] = useState<string | null>(null);
+  const [promoSortBy, setPromoSortBy] = useState<SortOption>('discount_desc');
+
   const searchRef = useRef<HTMLDivElement>(null);
   const storeSearchRef = useRef<HTMLDivElement>(null);
   const headerSearchRef = useRef<HTMLDivElement>(null);
@@ -214,6 +220,8 @@ function AppContent() {
       pageTitle = "EcoFeira | Supermercados Parceiros";
     } else if (path === '/favorites') {
       pageTitle = "EcoFeira | Meus Favoritos";
+    } else if (path === '/promocoes') {
+      pageTitle = "EcoFeira | Ofertas do Dia";
     } else if (path === '/cart') {
       pageTitle = "EcoFeira | Minha Lista de Compras";
     } else if (path.startsWith('/search')) {
@@ -226,10 +234,8 @@ function AppContent() {
       pageTitle = store ? `EcoFeira | ${store.name}` : "EcoFeira | Detalhes da Loja";
     }
 
-    // Atualiza o título da página no navegador
     document.title = pageTitle;
 
-    // Reporta para o Google Analytics
     if (typeof (window as any).gtag === 'function') {
       (window as any).gtag('config', 'G-DCSKFBSG8T', {
         page_title: pageTitle,
@@ -352,6 +358,79 @@ function AppContent() {
 
     return allOffers.filter(offer => favorites.includes(offer.id));
   }, [favorites]);
+
+  const basePromos = useMemo(() => {
+    return RAW_PRODUCTS.filter(p => p.promocao).map(p => {
+      const store = MOCK_STORES.find(s => s.name === p.supermercado) || MOCK_STORES[0];
+      return {
+        id: `prod_${p.id}_${store.id}`,
+        baseProductId: String(p.id),
+        name: p.produto,
+        category: p.categoria,
+        storeId: store.id,
+        storeName: store.name,
+        storeColor: store.color,
+        price: p.preco_promocional || p.preco_normal,
+        originalPrice: p.preco_normal,
+        unit: p.produto.split(' ').slice(-1)[0],
+        imageUrl: "",
+        isPromo: true
+      };
+    });
+  }, []);
+
+  const filteredAndSortedPromos = useMemo(() => {
+    let result = [...basePromos];
+    
+    // Filtro Texto
+    if (promoSearch.trim()) {
+      const search = normalizeText(promoSearch);
+      result = result.filter(p => normalizeText(p.name).includes(search));
+    }
+
+    // Filtro Categoria
+    if (selectedPromoCategory) {
+      result = result.filter(p => p.category === selectedPromoCategory);
+    }
+
+    // Filtro Loja
+    if (selectedPromoStore) {
+      result = result.filter(p => p.storeId === selectedPromoStore);
+    }
+
+    // Ordenação
+    result.sort((a, b) => {
+      if (promoSortBy === 'price_asc') return a.price - b.price;
+      if (promoSortBy === 'price_desc') return b.price - a.price;
+      if (promoSortBy === 'discount_desc') {
+        const discA = ((a.originalPrice - a.price) / a.originalPrice);
+        const discB = ((b.originalPrice - b.price) / b.originalPrice);
+        return discB - discA;
+      }
+      return a.name.localeCompare(b.name);
+    });
+
+    return result;
+  }, [basePromos, promoSearch, selectedPromoCategory, selectedPromoStore, promoSortBy]);
+
+  const promoItemsToRender = useMemo<RenderItem[]>(() => {
+    const products: RenderItem[] = filteredAndSortedPromos.map(p => ({
+      type: 'product',
+      data: p,
+      id: p.id
+    }));
+    // Insere banner a cada 5 produtos ou na posição 3 para visibilidade
+    if (products.length >= 3) {
+      products.splice(3, 0, { type: 'ad', id: 'inline-promo-banner' });
+    }
+    return products;
+  }, [filteredAndSortedPromos]);
+
+  // Lógica para encontrar o produto mais econômico na comparação
+  const cheapestProductInCompare = useMemo(() => {
+    if (compareList.length === 0) return null;
+    return compareList.reduce((prev, curr) => (prev.price < curr.price ? prev : curr));
+  }, [compareList]);
 
   // Automated Notifications
   useEffect(() => {
@@ -564,6 +643,9 @@ function AppContent() {
           </div>
 
           <nav className="header-nav flex gap-4 items-center">
+            <Link to="/promocoes" className={`nav-link ${location.pathname === '/promocoes' ? 'active' : ''}`} data-tooltip="Ofertas do momento">
+              Promoções
+            </Link>
             <Link to="/stores" className={`nav-link ${location.pathname === '/stores' ? 'active' : ''}`} data-tooltip="Listar supermercados parceiros">
               Supermercados
             </Link>
@@ -571,7 +653,7 @@ function AppContent() {
               Favoritos
               {favoritesCount > 0 && <span className="badge-count animate-pop" style={{ position: 'absolute', top: '-2px', right: '-8px', width: '16px', height: '16px', fontSize: '0.6rem' }}>{favoritesCount}</span>}
             </Link>
-            {location.pathname !== '/' && location.pathname !== '/stores' && location.pathname !== '/favorites' && (
+            {location.pathname !== '/' && location.pathname !== '/stores' && location.pathname !== '/favorites' && location.pathname !== '/promocoes' && (
               <div className="search-container" ref={headerSearchRef}>
                 <form onSubmit={(e) => handleSearch(e)}>
                   <Search className="search-icon" size={18} />
@@ -631,7 +713,7 @@ function AppContent() {
               )}
             </div>
 
-            <Link to="/cart" className="btn btn-ghost" style={{ position: 'relative', padding: '10px' }} data-tooltip="Ver minha lista de compras">
+            <Link to="/cart" className="btn btn-ghost" style={{ position: 'relative', padding: '10px' }} data-tooltip="Minha lista de compras">
               <ShoppingCart size={20} />
               {totalItems > 0 && <span className="badge-count animate-pop">{totalItems}</span>}
             </Link>
@@ -666,6 +748,9 @@ function AppContent() {
               <Link to="/" className="sidebar-link" onClick={() => setIsMenuOpen(false)}>
                 <LayoutGrid size={20} /> Início
               </Link>
+              <Link to="/promocoes" className="sidebar-link" onClick={() => setIsMenuOpen(false)}>
+                <Tag size={20} /> Promoções
+              </Link>
               <Link to="/stores" className="sidebar-link" onClick={() => setIsMenuOpen(false)}>
                 <StoreIcon size={20} /> Supermercados
               </Link>
@@ -677,7 +762,6 @@ function AppContent() {
                 Meus Favoritos
               </Link>
               
-              {/* Alertas de Preço no Menu Lateral Mobile */}
               <button className="sidebar-link" onClick={() => { setIsNotifOpen(true); setIsMenuOpen(false); markAllNotifsRead(); }} style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}>
                 <div style={{ position: 'relative' }}>
                   <Bell size={20} />
@@ -736,6 +820,121 @@ function AppContent() {
                   {INITIAL_SUGGESTIONS.map(s => (<button key={s} onClick={() => handleSearch(undefined, s)} className="btn btn-ghost" style={{fontSize: '0.8rem', padding: '6px 14px', borderRadius: '10px'}}>{s}</button>))}
                 </div>
               </div>
+            </div>
+          } />
+
+          <Route path="/promocoes" element={
+            <div className="animate">
+              {/* Promo Header with Integrated Search */}
+              <div className="promo-page-hero">
+                <div className="flex items-center gap-4" style={{ marginBottom: '24px' }}>
+                  <div className="promo-badge-icon"><Percent size={28} /></div>
+                  <div>
+                    <h2 style={{fontWeight: 800, fontSize: '2.4rem', lineHeight: 1.1}}>Promoções <span style={{ color: 'var(--danger)' }}>Exclusivas</span></h2>
+                    <p style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Encontramos {filteredAndSortedPromos.length} ofertas imperdíveis para você economizar hoje.</p>
+                  </div>
+                </div>
+
+                <div className="promo-controls-grid">
+                  {/* Internal Search */}
+                  <div className="promo-search-bar">
+                    <Search size={20} className="promo-search-icon" />
+                    <input 
+                      type="text" 
+                      placeholder="Pesquisar nas promoções..." 
+                      value={promoSearch}
+                      onChange={(e) => setPromoSearch(e.target.value)}
+                    />
+                  </div>
+                  
+                  {/* Sorter */}
+                  <div className="promo-sort-select">
+                    <ArrowUpDown size={18} />
+                    <select value={promoSortBy} onChange={(e) => setPromoSortBy(e.target.value as SortOption)}>
+                      <option value="discount_desc">Maior Desconto %</option>
+                      <option value="price_asc">Menor Preço R$</option>
+                      <option value="price_desc">Maior Preço R$</option>
+                      <option value="name_asc">Nome (A-Z)</option>
+                    </select>
+                  </div>
+
+                  {/* View Toggle */}
+                  <div className="view-mode-toggle-box">
+                    <button onClick={() => setViewMode('grid')} className={viewMode === 'grid' ? 'active' : ''} data-tooltip="Grade"><LayoutGrid size={20} /></button>
+                    <button onClick={() => setViewMode('list')} className={viewMode === 'list' ? 'active' : ''} data-tooltip="Lista"><List size={20} /></button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Horizontal Filters (Category & Store) */}
+              <div className="promo-filters-scroll">
+                <div className="filter-group">
+                  <span className="filter-label"><Filter size={12} /> Categorias:</span>
+                  <button 
+                    onClick={() => setSelectedPromoCategory(null)} 
+                    className={`filter-pill ${!selectedPromoCategory ? 'active' : ''}`}
+                  >
+                    Todas
+                  </button>
+                  {categories.map(cat => (
+                    <button 
+                      key={cat} 
+                      onClick={() => setSelectedPromoCategory(selectedPromoCategory === cat ? null : cat)} 
+                      className={`filter-pill ${selectedPromoCategory === cat ? 'active' : ''}`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+                <div className="filter-divider" />
+                <div className="filter-group">
+                  <span className="filter-label"><StoreIcon size={12} /> Lojas:</span>
+                  <button 
+                    onClick={() => setSelectedPromoStore(null)} 
+                    className={`filter-pill ${!selectedPromoStore ? 'active' : ''}`}
+                  >
+                    Todas
+                  </button>
+                  {MOCK_STORES.map(store => (
+                    <button 
+                      key={store.id} 
+                      onClick={() => setSelectedPromoStore(selectedPromoStore === store.id ? null : store.id)} 
+                      className={`filter-pill ${selectedPromoStore === store.id ? 'active' : ''}`}
+                    >
+                      {renderLogo(store.logo, '16px')} {store.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Product Grid / List with Ad Integration */}
+              {promoItemsToRender.length > 0 ? (
+                <div className={viewMode === 'grid' ? "product-grid" : "product-list-view"}>
+                  {promoItemsToRender.map(item => (
+                    item.type === 'product' && item.data ? (
+                      <ProductCard 
+                        key={item.id} 
+                        product={item.data} 
+                        onAdd={addToCart} 
+                        onStoreClick={handleStoreClick}
+                        layout={viewMode}
+                        isFavorite={favorites.includes(item.data.id)}
+                        onToggleFavorite={toggleFavorite}
+                        isComparing={compareList.some(p => p.id === item.data.id)}
+                        onToggleCompare={toggleCompare}
+                      />
+                    ) : (
+                      <InlineAdBanner key={item.id} layout={viewMode} />
+                    )
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-state-box animate">
+                   <AlertTriangle size={48} opacity={0.3} />
+                   <p>Nenhuma promoção encontrada para os filtros aplicados.</p>
+                   <button className="btn btn-ghost" onClick={() => { setPromoSearch(''); setSelectedPromoCategory(null); setSelectedPromoStore(null); }}>Limpar Filtros</button>
+                </div>
+              )}
             </div>
           } />
 
@@ -807,14 +1006,14 @@ function AppContent() {
             <div className="animate">
               <div className="flex items-center justify-between" style={{ marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
                 <div className="flex items-center gap-2">
-                  <button className="btn btn-ghost" onClick={() => navigate('/')} data-tooltip="Fechar resultados" style={{ padding: '8px' }}><X size={20} /></button>
+                  <button className="btn btn-ghost" onClick={() => navigate('/')} data-tooltip="Voltar para a página inicial" style={{ padding: '8px' }}><X size={20} /></button>
                   <h2 style={{fontWeight: 800, fontSize: '1.25rem'}}>{filteredAndSortedResults.length} resultados para "{query}"</h2>
                 </div>
               </div>
               <div className="flex items-center justify-between" style={{ marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
                 <div className="flex items-center gap-4">
                   <div style={{ display: 'flex', background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '4px' }}>
-                    <button onClick={() => setViewMode('grid')} className={`btn-icon ${viewMode === 'grid' ? 'active' : ''}`} data-tooltip="Grelha"><LayoutGrid size={18} /></button>
+                    <button onClick={() => setViewMode('grid')} className={`btn-icon ${viewMode === 'grid' ? 'active' : ''}`} data-tooltip="Grade"><LayoutGrid size={18} /></button>
                     <button onClick={() => setViewMode('list')} className={`btn-icon ${viewMode === 'list' ? 'active' : ''}`} data-tooltip="Lista"><List size={18} /></button>
                   </div>
                   <div className="flex items-center gap-2">
@@ -965,7 +1164,7 @@ function AppContent() {
         </div>
       )}
 
-      {/* Comparison Modal */}
+      {/* Comparison Modal with Highlighted Best Choice */}
       {isCompareModalOpen && (
         <div className="modal-overlay" onClick={() => setIsCompareModalOpen(false)}>
           <div className="modal-content comparison-modal animate-pop" onClick={e => e.stopPropagation()} style={{ maxWidth: '900px', width: '95%' }}>
@@ -982,36 +1181,84 @@ function AppContent() {
                 <thead>
                   <tr>
                     <th style={{ width: '200px', textAlign: 'left' }}>Atributo</th>
-                    {compareList.map(item => (
-                      <th key={item.id} style={{ minWidth: '150px' }}>
-                        <div style={{ textAlign: 'center' }}>
-                          <div className="mini-img-placeholder">
-                            <ShoppingBasket size={32} opacity={0.1} color="var(--primary)" />
+                    {compareList.map(item => {
+                      const isCheapest = item.id === cheapestProductInCompare?.id;
+                      return (
+                        <th key={item.id} style={{ 
+                          minWidth: '150px', 
+                          position: 'relative',
+                          border: isCheapest ? '2px solid var(--primary)' : '1px solid var(--border)',
+                          background: isCheapest ? 'var(--primary-light)' : 'transparent',
+                          borderBottom: 'none'
+                        }}>
+                          {isCheapest && (
+                            <div style={{
+                              position: 'absolute',
+                              top: '-12px',
+                              left: '50%',
+                              transform: 'translateX(-50%)',
+                              background: 'var(--primary)',
+                              color: 'white',
+                              fontSize: '0.6rem',
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              fontWeight: 900,
+                              textTransform: 'uppercase',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              <Trophy size={10} /> Melhor Preço
+                            </div>
+                          )}
+                          <div style={{ textAlign: 'center', paddingTop: isCheapest ? '10px' : '0' }}>
+                            <div className="mini-img-placeholder">
+                              <ShoppingBasket size={32} opacity={0.1} color="var(--primary)" />
+                            </div>
+                            <p style={{ fontWeight: 700, fontSize: '0.85rem', marginTop: '10px', height: '2.6em', overflow: 'hidden' }}>{item.name}</p>
                           </div>
-                          <p style={{ fontWeight: 700, fontSize: '0.85rem', marginTop: '10px', height: '2.6em', overflow: 'hidden' }}>{item.name}</p>
-                        </div>
-                      </th>
-                    ))}
+                        </th>
+                      );
+                    })}
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
                     <td><strong>Preço</strong></td>
-                    {compareList.map(item => (
-                      <td key={item.id}>
-                        <div style={{ textAlign: 'center' }}>
-                          <span style={{ fontSize: '1.2rem', fontWeight: 800, color: item.isPromo ? 'var(--danger)' : 'var(--primary)' }}>R$ {item.price.toFixed(2).replace('.', ',')}</span>
-                          {item.isPromo && <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', textDecoration: 'line-through' }}>R$ {item.originalPrice.toFixed(2).replace('.', ',')}</span>}
-                        </div>
-                      </td>
-                    ))}
+                    {compareList.map(item => {
+                       const isCheapest = item.id === cheapestProductInCompare?.id;
+                       return (
+                        <td key={item.id} style={{ 
+                          borderLeft: isCheapest ? '2px solid var(--primary)' : '1px solid var(--border)',
+                          borderRight: isCheapest ? '2px solid var(--primary)' : '1px solid var(--border)',
+                          background: isCheapest ? 'var(--primary-light)' : 'transparent'
+                        }}>
+                          <div style={{ textAlign: 'center' }}>
+                            <span style={{ 
+                              fontSize: '1.2rem', 
+                              fontWeight: 800, 
+                              color: isCheapest ? 'var(--primary)' : (item.isPromo ? 'var(--danger)' : 'var(--primary)') 
+                            }}>
+                              R$ {item.price.toFixed(2).replace('.', ',')}
+                            </span>
+                            {item.isPromo && <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', textDecoration: 'line-through' }}>R$ {item.originalPrice.toFixed(2).replace('.', ',')}</span>}
+                          </div>
+                        </td>
+                      );
+                    })}
                   </tr>
                   <tr>
                     <td><strong>Loja</strong></td>
                     {compareList.map(item => {
                       const storeData = MOCK_STORES.find(s => s.id === item.storeId);
+                      const isCheapest = item.id === cheapestProductInCompare?.id;
                       return (
-                        <td key={item.id}>
+                        <td key={item.id} style={{ 
+                          borderLeft: isCheapest ? '2px solid var(--primary)' : '1px solid var(--border)',
+                          borderRight: isCheapest ? '2px solid var(--primary)' : '1px solid var(--border)',
+                          background: isCheapest ? 'var(--primary-light)' : 'transparent'
+                        }}>
                           <div className="flex items-center justify-center gap-2">
                             {renderLogo(storeData?.logo || '', '24px', item.storeName)}
                             <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{item.storeName}</span>
@@ -1022,28 +1269,44 @@ function AppContent() {
                   </tr>
                   <tr>
                     <td><strong>Categoria</strong></td>
-                    {compareList.map(item => (
-                      <td key={item.id} style={{ textAlign: 'center' }}>
-                        <span style={{ fontSize: '0.7rem', background: 'var(--primary-light)', color: 'var(--primary)', padding: '2px 8px', borderRadius: '4px', fontWeight: 800 }}>{item.category}</span>
-                      </td>
-                    ))}
+                    {compareList.map(item => {
+                      const isCheapest = item.id === cheapestProductInCompare?.id;
+                      return (
+                        <td key={item.id} style={{ 
+                          textAlign: 'center',
+                          borderLeft: isCheapest ? '2px solid var(--primary)' : '1px solid var(--border)',
+                          borderRight: isCheapest ? '2px solid var(--primary)' : '1px solid var(--border)',
+                          background: isCheapest ? 'var(--primary-light)' : 'transparent'
+                        }}>
+                          <span style={{ fontSize: '0.7rem', background: 'var(--primary-light)', color: 'var(--primary)', padding: '2px 8px', borderRadius: '4px', fontWeight: 800 }}>{item.category}</span>
+                        </td>
+                      );
+                    })}
                   </tr>
                   <tr>
                     <td><strong>Ações</strong></td>
-                    {compareList.map(item => (
-                      <td key={item.id}>
-                        <div style={{ textAlign: 'center' }}>
-                          <button 
-                            className="btn btn-primary" 
-                            style={{ fontSize: '0.7rem', padding: '6px 12px' }}
-                            onClick={() => { addToCart(item); setIsCompareModalOpen(false); }}
-                            data-tooltip="Adicionar este à lista"
-                          >
-                            Add à Lista
-                          </button>
-                        </div>
-                      </td>
-                    ))}
+                    {compareList.map(item => {
+                      const isCheapest = item.id === cheapestProductInCompare?.id;
+                      return (
+                        <td key={item.id} style={{ 
+                          borderLeft: isCheapest ? '2px solid var(--primary)' : '1px solid var(--border)',
+                          borderRight: isCheapest ? '2px solid var(--primary)' : '1px solid var(--border)',
+                          borderBottom: isCheapest ? '2px solid var(--primary)' : '1px solid var(--border)',
+                          background: isCheapest ? 'var(--primary-light)' : 'transparent'
+                        }}>
+                          <div style={{ textAlign: 'center' }}>
+                            <button 
+                              className="btn btn-primary" 
+                              style={{ fontSize: '0.7rem', padding: '6px 12px' }}
+                              onClick={() => { addToCart(item); setIsCompareModalOpen(false); }}
+                              data-tooltip="Adicionar este à lista"
+                            >
+                              Add à Lista
+                            </button>
+                          </div>
+                        </td>
+                      );
+                    })}
                   </tr>
                 </tbody>
               </table>
@@ -1111,10 +1374,42 @@ function AppContent() {
         .mobile-only { display: none; }
         .hide-mobile { display: inline-flex; }
 
+        /* Promo Page Exclusive Styles */
+        .promo-page-hero { margin-bottom: 40px; }
+        .promo-badge-icon { background: var(--danger); color: white; width: 64px; height: 64px; border-radius: 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 20px rgba(239, 68, 68, 0.2); }
+        .promo-controls-grid { display: grid; grid-template-columns: 1fr auto auto; gap: 16px; margin-top: 30px; align-items: center; }
+        .promo-search-bar { position: relative; }
+        .promo-search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+        .promo-search-bar input { width: 100%; padding: 14px 20px 14px 50px; border-radius: 16px; border: 2px solid var(--border); background: var(--card-bg); color: var(--text-main); font-weight: 600; outline: none; transition: border-color 0.2s; }
+        .promo-search-bar input:focus { border-color: var(--primary); }
+        .promo-sort-select { display: flex; align-items: center; gap: 10px; background: var(--card-bg); border: 2px solid var(--border); padding: 0 16px; border-radius: 16px; color: var(--text-muted); }
+        .promo-sort-select select { border: none; background: none; padding: 14px 0; color: var(--text-main); font-weight: 700; outline: none; font-family: inherit; cursor: pointer; }
+        .view-mode-toggle-box { display: flex; background: var(--card-bg); border: 2px solid var(--border); padding: 4px; border-radius: 16px; gap: 4px; }
+        .view-mode-toggle-box button { border: none; background: none; padding: 10px; border-radius: 12px; color: var(--text-muted); cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
+        .view-mode-toggle-box button.active { background: var(--primary); color: white; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); }
+
+        .promo-filters-scroll { display: flex; align-items: center; gap: 20px; overflow-x: auto; padding: 15px 0; margin-bottom: 20px; scrollbar-width: none; }
+        .promo-filters-scroll::-webkit-scrollbar { display: none; }
+        .filter-group { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+        .filter-label { font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 6px; }
+        .filter-pill { padding: 8px 18px; border-radius: 100px; border: 1.5px solid var(--border); background: var(--card-bg); color: var(--text-main); font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px; }
+        .filter-pill:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-1px); }
+        .filter-pill.active { background: var(--primary); border-color: var(--primary); color: white; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); }
+        .filter-divider { width: 1px; height: 30px; background: var(--border); flex-shrink: 0; }
+
+        .empty-state-box { padding: 100px 20px; text-align: center; background: var(--card-bg); border-radius: 30px; border: 2px dashed var(--border); display: flex; flex-direction: column; align-items: center; gap: 20px; }
+        .empty-state-box p { color: var(--text-muted); font-weight: 600; font-size: 1.1rem; }
+
         @media (max-width: 768px) {
           .header-nav { display: none; }
           .mobile-only { display: inline-flex; }
           .hide-mobile { display: none !important; }
+          .promo-controls-grid { grid-template-columns: 1fr; }
+          .view-mode-toggle-box { justify-content: center; }
+          .promo-filters-scroll { gap: 12px; }
+          .filter-divider { display: none; }
+          .promo-filters-scroll { flex-direction: column; align-items: flex-start; }
+          
           .compare-floating-bar {
             left: 50% !important;
             top: auto !important;
@@ -1127,7 +1422,6 @@ function AppContent() {
           .compare-bar-layout { flex-direction: row !important; gap: 15px !important; }
           .compare-items-stack, .compare-actions-stack { flex-direction: row !important; }
           
-          /* Store Grid Mobile 2 Columns */
           .store-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);

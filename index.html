@@ -151,46 +151,56 @@
       }
       .card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
 
-      /* Tooltip System */
+      /* Tooltip System - Positioned Below items for best visibility */
       [data-tooltip] {
         position: relative;
       }
+      
+      /* Elevate the item on hover to fix "underneath" issue */
+      [data-tooltip]:hover {
+        z-index: 5000 !important;
+      }
+
+      /* Tooltip Box - Positioned BELOW */
       [data-tooltip]::before {
         content: attr(data-tooltip);
         position: absolute;
-        bottom: 125%;
+        top: calc(100% + 12px);
         left: 50%;
-        transform: translateX(-50%) translateY(5px);
-        padding: 6px 12px;
+        transform: translateX(-50%) translateY(-10px);
+        padding: 8px 14px;
         background-color: var(--tooltip-bg);
         color: white;
-        font-size: 0.7rem;
+        font-size: 0.75rem;
         font-weight: 700;
-        border-radius: 8px;
+        border-radius: 10px;
         white-space: nowrap;
         opacity: 0;
         visibility: hidden;
         transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        z-index: 2000;
         pointer-events: none;
-        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.2);
-        letter-spacing: 0.02em;
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
+        letter-spacing: 0.01em;
+        line-height: 1.2;
       }
+
+      /* Tooltip Arrow - Positioned BELOW */
       [data-tooltip]::after {
         content: '';
         position: absolute;
-        bottom: 110%;
+        top: calc(100% + 2px);
         left: 50%;
         transform: translateX(-50%);
         border-width: 6px;
         border-style: solid;
-        border-color: var(--tooltip-bg) transparent transparent transparent;
+        border-color: transparent transparent var(--tooltip-bg) transparent;
         opacity: 0;
         visibility: hidden;
         transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        z-index: 2000;
         pointer-events: none;
       }
+
+      /* Hover triggers */
       [data-tooltip]:hover::before {
         opacity: 1;
         visibility: visible;
@@ -200,7 +210,8 @@
         opacity: 1;
         visibility: visible;
       }
-      /* Prevent tooltips on mobile for a cleaner touch experience */
+
+      /* No tooltips on small mobile for better performance */
       @media (max-width: 768px) {
         [data-tooltip]::before, [data-tooltip]::after { display: none !important; }
       }
