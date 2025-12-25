@@ -5,11 +5,13 @@ import { Store } from './types';
 export const BANNER_HOME_DURATION = 6000; // Banner retangular principal na home
 export const BANNER_AD_GRID_DURATION = 5000; // Banner quadrado entre itens (modo grade)
 export const BANNER_AD_LIST_DURATION = 4000; // Banner horizontal entre itens (modo lista)
+export const BANNER_STORE_PAGE_DURATION = 7000; // Banner na página de supermercados
 
 // Configurações de Ordem Aleatória (Shuffle)
 export const BANNER_HOME_SHUFFLE = true; // Define se o banner da home embaralha os slides
 export const BANNER_AD_GRID_SHUFFLE = true; // Define se banners em grade embaralham slides
 export const BANNER_AD_LIST_SHUFFLE = true; // Define se banners em lista embaralham slides
+export const BANNER_STORE_PAGE_SHUFFLE = true; // Define se o banner da página de lojas embaralha
 
 export const MOCK_STORES: Store[] = [
   {

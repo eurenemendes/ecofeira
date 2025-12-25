@@ -25,6 +25,7 @@ import BannerCarousel from './components/BannerCarousel';
 import InlineAdBanner from './components/InlineAdBanner';
 import StoreFlyer from './components/StoreFlyer';
 import PartnerTicker from './components/PartnerTicker';
+import StorePageAd from './components/StorePageAd';
 
 type SortOption = 'price_asc' | 'price_desc' | 'name_asc' | 'discount_desc';
 type ViewMode = 'grid' | 'list';
@@ -161,6 +162,7 @@ function StoreDetailView({
             isFavorite={favorites.includes(product.id)}
             onToggleFavorite={onToggleFavorite}
             isComparing={compareList.some(p => p.id === product.id)}
+            // Fix: Changed toggleCompare to onToggleCompare as per the prop name
             onToggleCompare={onToggleCompare}
           />
         ))}
@@ -961,6 +963,9 @@ function AppContent() {
                 </div>
               </div>
               <div className="store-grid">
+                {/* Banner de anúncios aparece como primeiro item */}
+                <StorePageAd />
+                
                 {filteredStores.map(store => (
                   <div key={store.id} className="card store-card" onClick={() => handleStoreClick(store.id)} style={{cursor: 'pointer', padding: '24px', textAlign: 'center'}}>
                     <div style={{height: '80px', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem'}}>{renderLogo(store.logo, '80px', store.name)}</div>
