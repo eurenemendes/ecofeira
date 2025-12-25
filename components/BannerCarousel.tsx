@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, ExternalLink, Play } from 'lucide-react';
-import { BANNER_HOME_DURATION } from '../constants';
+import { BANNER_HOME_DURATION, BANNER_HOME_SHUFFLE } from '../constants';
 
 interface Slide {
   id: number;
@@ -14,7 +14,7 @@ interface Slide {
   videoEmbedUrl?: string;
 }
 
-const SLIDES: Slide[] = [
+const SLIDES_DATA: Slide[] = [
   {
     id: 1,
     title: "Ofertas de Hortifruti",
@@ -48,12 +48,19 @@ const BannerCarousel: React.FC = () => {
   const [current, setCurrent] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
-  const nextSlide = useCallback(() => {
-    setCurrent((prev) => (prev === SLIDES.length - 1 ? 0 : prev + 1));
+  const slides = useMemo(() => {
+    if (BANNER_HOME_SHUFFLE) {
+      return [...SLIDES_DATA].sort(() => Math.random() - 0.5);
+    }
+    return SLIDES_DATA;
   }, []);
 
+  const nextSlide = useCallback(() => {
+    setCurrent((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
+  }, [slides.length]);
+
   const prevSlide = () => {
-    setCurrent((prev) => (prev === 0 ? SLIDES.length - 1 : prev - 1));
+    setCurrent((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
   };
 
   useEffect(() => {
@@ -81,17 +88,17 @@ const BannerCarousel: React.FC = () => {
       <div 
         style={{
           display: 'flex',
-          width: `${SLIDES.length * 100}%`,
+          width: `${slides.length * 100}%`,
           height: '100%',
-          transform: `translateX(-${(current * 100) / SLIDES.length}%)`,
+          transform: `translateX(-${(current * 100) / slides.length}%)`,
           transition: 'transform 0.7s cubic-bezier(0.4, 0, 0.2, 1)'
         }}
       >
-        {SLIDES.map((slide) => (
+        {slides.map((slide) => (
           <div 
             key={slide.id}
             style={{
-              width: `${100 / SLIDES.length}%`,
+              width: `${100 / slides.length}%`,
               height: '100%',
               background: slide.gradient,
               position: 'relative',
@@ -215,7 +222,7 @@ const BannerCarousel: React.FC = () => {
         gap: '8px',
         zIndex: 10
       }}>
-        {SLIDES.map((_, idx) => (
+        {slides.map((_, idx) => (
           <div 
             key={idx}
             onClick={() => setCurrent(idx)}

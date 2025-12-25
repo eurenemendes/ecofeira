@@ -209,6 +209,13 @@ function AppContent() {
   const [onlyPromos, setOnlyPromos] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('price_asc');
 
+  // Efeito para estatísticas dinâmicas do Hero
+  const stats = useMemo(() => ({
+    totalProducts: RAW_PRODUCTS.length,
+    totalStores: MOCK_STORES.length,
+    totalPromos: RAW_PRODUCTS.filter(p => p.promocao).length
+  }), []);
+
   // EFEITO PARA GOOGLE ANALYTICS E TÍTULOS DINÂMICOS
   useEffect(() => {
     let pageTitle = "EcoFeira";
@@ -614,7 +621,7 @@ function AppContent() {
   };
 
   const unreadCount = useMemo(() => notifications.filter(n => !n.isRead).length, [notifications]);
-  const totalItems = useMemo(() => cart.reduce((acc, item) => acc + item.quantity, 0), [cart]);
+  const totalItemsCount = useMemo(() => cart.reduce((acc, item) => acc + item.quantity, 0), [cart]);
   const favoritesCount = useMemo(() => favorites.length, [favorites]);
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -711,7 +718,7 @@ function AppContent() {
 
             <Link to="/cart" className="btn btn-ghost" style={{ position: 'relative', padding: '10px' }} data-tooltip="Ver minha lista de compras">
               <ShoppingCart size={20} />
-              {totalItems > 0 && <span className="badge-count animate-pop">{totalItems}</span>}
+              {totalItemsCount > 0 && <span className="badge-count animate-pop">{totalItemsCount}</span>}
             </Link>
 
             <button 
@@ -786,7 +793,9 @@ function AppContent() {
           <Route path="/" element={
             <div className="animate" style={{textAlign: 'center', maxWidth: '800px', margin: '60px auto'}}>
               <h1 style={{fontSize: '3.2rem', fontWeight: 800, marginBottom: '16px', lineHeight: 1.1}}>Compare e <span style={{color: 'var(--primary)'}}>economize</span>.</h1>
-              <p style={{color: 'var(--text-muted)', marginBottom: '30px', fontSize: '1.1rem'}}>Os melhores preços de {RAW_PRODUCTS.length} produtos em 5 supermercados locais.</p>
+              <p style={{color: 'var(--text-muted)', marginBottom: '30px', fontSize: '1.1rem'}}>
+                Os melhores preços de {stats.totalProducts} produtos em {stats.totalStores} supermercados locais, incluindo {stats.totalPromos} promoções imperdíveis.
+              </p>
               
               <PartnerTicker />
 
@@ -1252,7 +1261,7 @@ function AppContent() {
           <div className="modal-content animate-pop" onClick={(e) => e.stopPropagation()}>
             <div className="modal-icon-container"><AlertTriangle size={32} color="var(--danger)" /></div>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '12px', color: 'var(--text-main)' }}>Limpar sua lista?</h3>
-            <p style={{ color: 'var(--text-muted)', marginBottom: '28px', fontSize: '0.95rem' }}>Essa ação irá remover todos os {totalItems} itens da sua lista de compras atual.</p>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '28px', fontSize: '0.95rem' }}>Essa ação irá remover todos os {totalItemsCount} itens da sua lista de compras atual.</p>
             <div className="flex gap-4 justify-center" style={{ width: '100%' }}>
               <button className="btn btn-ghost" style={{ flex: 1, padding: '12px', borderRadius: '14px' }} onClick={() => setIsClearModalOpen(false)}>Cancelar</button>
               <button className="btn btn-primary" style={{ flex: 1, padding: '12px', borderRadius: '14px', background: 'var(--danger)' }} onClick={clearCart}>Sim, limpar tudo</button>

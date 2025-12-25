@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Megaphone, Play } from 'lucide-react';
-import { BANNER_AD_GRID_DURATION, BANNER_AD_LIST_DURATION } from '../constants';
+import { BANNER_AD_GRID_DURATION, BANNER_AD_LIST_DURATION, BANNER_AD_GRID_SHUFFLE, BANNER_AD_LIST_SHUFFLE } from '../constants';
 
 interface AdSlide {
   id: number;
@@ -13,7 +13,7 @@ interface AdSlide {
   videoEmbedUrl?: string;
 }
 
-const AD_SLIDES: AdSlide[] = [
+const AD_SLIDES_DATA: AdSlide[] = [
   {
     id: 1,
     title: "Entrega Grátis na primeira compra!",
@@ -47,15 +47,24 @@ interface InlineAdBannerProps {
 const InlineAdBanner: React.FC<InlineAdBannerProps> = ({ layout }) => {
   const [current, setCurrent] = useState(0);
 
+  const slides = useMemo(() => {
+    const isGrid = layout === 'grid';
+    const shouldShuffle = isGrid ? BANNER_AD_GRID_SHUFFLE : BANNER_AD_LIST_SHUFFLE;
+    if (shouldShuffle) {
+      return [...AD_SLIDES_DATA].sort(() => Math.random() - 0.5);
+    }
+    return AD_SLIDES_DATA;
+  }, [layout]);
+
   const nextSlide = useCallback((e?: React.MouseEvent) => {
     e?.stopPropagation();
-    setCurrent((prev) => (prev === AD_SLIDES.length - 1 ? 0 : prev + 1));
-  }, []);
+    setCurrent((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
+  }, [slides.length]);
 
   const prevSlide = useCallback((e?: React.MouseEvent) => {
     e?.stopPropagation();
-    setCurrent((prev) => (prev === 0 ? AD_SLIDES.length - 1 : prev - 1));
-  }, []);
+    setCurrent((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
+  }, [slides.length]);
 
   useEffect(() => {
     const duration = layout === 'grid' ? BANNER_AD_GRID_DURATION : BANNER_AD_LIST_DURATION;
@@ -63,7 +72,7 @@ const InlineAdBanner: React.FC<InlineAdBannerProps> = ({ layout }) => {
     return () => clearInterval(timer);
   }, [nextSlide, layout]);
 
-  const slide = AD_SLIDES[current];
+  const slide = slides[current];
 
   const renderBackground = () => {
     if (slide.videoEmbedUrl) {
@@ -90,10 +99,6 @@ const InlineAdBanner: React.FC<InlineAdBannerProps> = ({ layout }) => {
     }
     return null;
   };
-
-  const overlayStyle = (slide.imageUrl || slide.videoEmbedUrl) 
-    ? 'linear-gradient(to right, rgba(0,0,0,0.8), rgba(0,0,0,0.3))' 
-    : slide.gradient;
 
   if (layout === 'list') {
     return (
@@ -209,7 +214,7 @@ const InlineAdBanner: React.FC<InlineAdBannerProps> = ({ layout }) => {
           <button onClick={nextSlide} className="ad-nav-btn"><ChevronRight size={16} /></button>
         </div>
         <div style={{ display: 'flex', gap: '4px' }}>
-          {AD_SLIDES.map((_, idx) => (
+          {slides.map((_, idx) => (
             <div key={idx} style={{ width: current === idx ? '16px' : '4px', height: '4px', background: 'white', opacity: current === idx ? 1 : 0.4, borderRadius: '2px', transition: 'all 0.3s' }} />
           ))}
         </div>
