@@ -24,6 +24,7 @@ import CartOptimizer from './components/CartOptimizer';
 import BannerCarousel from './components/BannerCarousel';
 import InlineAdBanner from './components/InlineAdBanner';
 import StoreFlyer from './components/StoreFlyer';
+import PartnerTicker from './components/PartnerTicker';
 
 type SortOption = 'price_asc' | 'price_desc' | 'name_asc';
 type ViewMode = 'grid' | 'list';
@@ -706,6 +707,9 @@ function AppContent() {
             <div className="animate" style={{textAlign: 'center', maxWidth: '800px', margin: '60px auto'}}>
               <h1 style={{fontSize: '3.2rem', fontWeight: 800, marginBottom: '16px', lineHeight: 1.1}}>Compare e <span style={{color: 'var(--primary)'}}>economize</span>.</h1>
               <p style={{color: 'var(--text-muted)', marginBottom: '30px', fontSize: '1.1rem'}}>Os melhores preços de {RAW_PRODUCTS.length} produtos em 5 supermercados locais.</p>
+              
+              <PartnerTicker />
+
               <BannerCarousel />
               <div style={{position: 'relative', marginBottom: '40px'}} ref={searchRef}>
                  <Search style={{position: 'absolute', left: '20px', top: '18px', color: 'var(--primary)', zIndex: 10}} size={24} />
@@ -1078,6 +1082,7 @@ function AppContent() {
         .sidebar-content { flex: 1; padding: 20px; display: flex; flex-direction: column; gap: 8px; }
         .sidebar-link { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 12px; font-weight: 700; color: var(--text-main); text-decoration: none; transition: all 0.2s; }
         .sidebar-link:hover { background: var(--primary-light); color: var(--primary); }
+        .sidebar-link:hover .badge-count { box-shadow: 0 0 0 2px var(--primary-light); }
         .sidebar-footer { padding: 20px; border-top: 1px solid var(--border); }
         
         @keyframes slideLeft { from { transform: translateX(100%); } to { transform: translateX(0); } }
