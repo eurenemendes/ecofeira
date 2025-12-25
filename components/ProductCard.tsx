@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ProductOffer } from '../types';
-import { Plus, ShoppingBasket, Tag, Check, Heart, Scale } from 'lucide-react';
+import { Plus, ShoppingBasket, Tag, Check, Heart, Scale, Clock } from 'lucide-react';
 import { MOCK_STORES } from '../constants';
 
 interface ProductCardProps {
@@ -239,6 +239,21 @@ const ProductCard: React.FC<ProductCardProps> = ({
             }}>
               R$ {product.price.toFixed(2).replace('.', ',')}
             </span>
+            {product.updatedAt && (
+              <div style={{ 
+                fontSize: '0.6rem', 
+                color: 'var(--text-muted)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'flex-end',
+                gap: '3px',
+                marginTop: '2px',
+                fontWeight: 600
+              }}>
+                <Clock size={10} />
+                {product.updatedAt}
+              </div>
+            )}
           </div>
 
           <button 
@@ -404,11 +419,25 @@ const ProductCard: React.FC<ProductCardProps> = ({
             </div>
           )}
           
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-end">
             <div>
               <span style={{fontSize: '1.2rem', fontWeight: 800, color: product.isPromo ? 'var(--danger)' : 'var(--text-main)'}}>
                 R$ {product.price.toFixed(2).replace('.', ',')}
               </span>
+              {product.updatedAt && (
+                <div style={{ 
+                  fontSize: '0.62rem', 
+                  color: 'var(--text-muted)', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '3px',
+                  marginTop: '1px',
+                  fontWeight: 600
+                }}>
+                  <Clock size={10} />
+                  {product.updatedAt}
+                </div>
+              )}
             </div>
             <button 
               className={`btn ${added ? 'btn-success' : 'btn-primary'}`} 

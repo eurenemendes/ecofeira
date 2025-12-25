@@ -36,6 +36,7 @@ export interface ProductOffer {
   unit: string;
   imageUrl: string;
   isPromo: boolean;
+  updatedAt?: string;
 }
 
 export interface CartItem extends ProductOffer {

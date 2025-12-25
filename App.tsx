@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { searchProductsWithGemini } from './services/geminiService';
 import { ProductOffer, CartItem, Store, AppNotification } from './types';
-import { INITIAL_SUGGESTIONS, MOCK_STORES, RAW_PRODUCTS } from './constants';
+import { INITIAL_SUGGESTIONS, MOCK_STORES, RAW_PRODUCTS, isProductFresh } from './constants';
 import ProductCard from './components/ProductCard';
 import CartOptimizer from './components/CartOptimizer';
 import BannerCarousel from './components/BannerCarousel';
@@ -81,20 +81,24 @@ function StoreDetailView({
   
   const storeProducts = useMemo(() => {
     if (!store) return [];
-    return RAW_PRODUCTS.filter(p => p.supermercado === store.name).map(p => ({
-      id: `prod_${p.id}_${store.id}`,
-      baseProductId: String(p.id),
-      name: p.produto,
-      category: p.categoria,
-      storeId: store.id,
-      storeName: store.name,
-      storeColor: store.color,
-      price: p.promocao ? (p.preco_promocional || p.preco_normal) : p.preco_normal,
-      originalPrice: p.preco_normal,
-      unit: p.produto.split(' ').slice(-1)[0],
-      imageUrl: "",
-      isPromo: p.promocao
-    }));
+    // Filtramos produtos da loja que também são recentes
+    return RAW_PRODUCTS
+      .filter(p => p.supermercado === store.name && isProductFresh(p.ultima_atualizacao))
+      .map(p => ({
+        id: `prod_${p.id}_${store.id}`,
+        baseProductId: String(p.id),
+        name: p.produto,
+        category: p.categoria,
+        storeId: store.id,
+        storeName: store.name,
+        storeColor: store.color,
+        price: p.promocao ? (p.preco_promocional || p.preco_normal) : p.preco_normal,
+        originalPrice: p.preco_normal,
+        unit: p.produto.split(' ').slice(-1)[0],
+        imageUrl: "",
+        isPromo: p.promocao,
+        updatedAt: (p as any).ultima_atualizacao
+      }));
   }, [store]);
 
   const renderLogo = (logo: string, size: string = '1em', alt: string = '') => {
@@ -162,7 +166,6 @@ function StoreDetailView({
             isFavorite={favorites.includes(product.id)}
             onToggleFavorite={onToggleFavorite}
             isComparing={compareList.some(p => p.id === product.id)}
-            // Fix: Changed toggleCompare to onToggleCompare as per the prop name
             onToggleCompare={onToggleCompare}
           />
         ))}
@@ -211,12 +214,14 @@ function AppContent() {
   const [onlyPromos, setOnlyPromos] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('price_asc');
 
-  // Efeito para estatísticas dinâmicas do Hero
+  // Filtragem Global para estatísticas e sugestões
+  const freshProductsPool = useMemo(() => RAW_PRODUCTS.filter(p => isProductFresh(p.ultima_atualizacao)), []);
+
   const stats = useMemo(() => ({
-    totalProducts: RAW_PRODUCTS.length,
+    totalProducts: freshProductsPool.length,
     totalStores: MOCK_STORES.length,
-    totalPromos: RAW_PRODUCTS.filter(p => p.promocao).length
-  }), []);
+    totalPromos: freshProductsPool.filter(p => p.promocao).length
+  }), [freshProductsPool]);
 
   // EFEITO PARA GOOGLE ANALYTICS E TÍTULOS DINÂMICOS
   useEffect(() => {
@@ -253,7 +258,7 @@ function AppContent() {
     }
   }, [location]);
 
-  const categories = useMemo(() => Array.from(new Set(RAW_PRODUCTS.map(p => p.categoria))), []);
+  const categories = useMemo(() => Array.from(new Set(freshProductsPool.map(p => p.categoria))), [freshProductsPool]);
 
   const filteredStores = useMemo(() => {
     const normalizedQuery = normalizeText(storeQuery);
@@ -346,7 +351,7 @@ function AppContent() {
   const clearCompare = () => setCompareList([]);
 
   const favoriteProducts = useMemo(() => {
-    const allOffers: ProductOffer[] = RAW_PRODUCTS.flatMap(p => {
+    const allOffers: ProductOffer[] = freshProductsPool.flatMap(p => {
       const store = MOCK_STORES.find(s => s.name === p.supermercado);
       if (!store) return [];
       return [{
@@ -361,15 +366,16 @@ function AppContent() {
         originalPrice: p.preco_normal,
         unit: p.produto.split(' ').slice(-1)[0],
         imageUrl: "",
-        isPromo: p.promocao
+        isPromo: p.promocao,
+        updatedAt: (p as any).ultima_atualizacao
       }];
     });
 
     return allOffers.filter(offer => favorites.includes(offer.id));
-  }, [favorites]);
+  }, [favorites, freshProductsPool]);
 
   const basePromos = useMemo(() => {
-    return RAW_PRODUCTS.filter(p => p.promocao).map(p => {
+    return freshProductsPool.filter(p => p.promocao).map(p => {
       const store = MOCK_STORES.find(s => s.name === p.supermercado) || MOCK_STORES[0];
       return {
         id: `prod_${p.id}_${store.id}`,
@@ -383,10 +389,11 @@ function AppContent() {
         originalPrice: p.preco_normal,
         unit: p.produto.split(' ').slice(-1)[0],
         imageUrl: "",
-        isPromo: true
+        isPromo: true,
+        updatedAt: (p as any).ultima_atualizacao
       };
     });
-  }, []);
+  }, [freshProductsPool]);
 
   const filteredAndSortedPromos = useMemo(() => {
     let result = [...basePromos];
@@ -442,7 +449,8 @@ function AppContent() {
     const generateNotifications = () => {
       const newNotifs: AppNotification[] = [];
       cart.forEach(item => {
-        const others = RAW_PRODUCTS.filter(p => p.produto === item.name && p.supermercado !== item.storeName);
+        // Notificações também respeitam a filtragem de frescor
+        const others = freshProductsPool.filter(p => p.produto === item.name && p.supermercado !== item.storeName);
         others.forEach(other => {
           const otherPrice = other.promocao ? (other.preco_promocional || other.preco_normal) : other.preco_normal;
           if (otherPrice < item.price) {
@@ -464,7 +472,7 @@ function AppContent() {
       });
 
       searchHistory.slice(0, 3).forEach(term => {
-        const matchingPromos = RAW_PRODUCTS.filter(p => p.produto.toLowerCase().includes(term.toLowerCase()) && p.promocao);
+        const matchingPromos = freshProductsPool.filter(p => p.produto.toLowerCase().includes(term.toLowerCase()) && p.promocao);
         matchingPromos.forEach(promo => {
           const id = `notif_promo_${term}_${promo.id}`;
           if (!notifications.some(n => n.id === id)) {
@@ -489,7 +497,7 @@ function AppContent() {
 
     const timer = setTimeout(generateNotifications, 3000);
     return () => clearTimeout(timer);
-  }, [cart, searchHistory, notifications.length]);
+  }, [cart, searchHistory, notifications.length, freshProductsPool]);
 
   const handleInputChange = (val: string) => {
     setQuery(val);
@@ -498,7 +506,7 @@ function AppContent() {
       const categoryMatches: SuggestionItem[] = categories
         .filter(cat => normalizeText(cat).includes(normalizedVal))
         .map(name => ({ name, type: 'category' }));
-      const productMatches: SuggestionItem[] = Array.from(new Set(RAW_PRODUCTS
+      const productMatches: SuggestionItem[] = Array.from(new Set(freshProductsPool
         .filter(p => normalizeText(p.produto).includes(normalizedVal))
         .map(p => p.produto)))
         .map(name => ({ name, type: 'product' }));
@@ -1514,12 +1522,71 @@ function AppContent() {
           padding-top: 16px;
         }
         .btn-compare-main {
-          width: 44px !important;
-          height: 44px !important;
-          padding: 0 !important;
-          justify-content: center !important;
-          border-radius: 12px !important;
-          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+          width: 44px !important; height: 44px !important; padding: 0 !important; justify-content: center !important; border-radius: 12px !important; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
         }
         .btn-clear-mini {
-          width: 44px !important; height: 36px !important; padding: 0 !important; justify-content: center !important; border-radius: 10px !important; color: var(--danger) !important; border-color: rgba(239, 68, 68, 0.1) !important; } .btn-compare-main:disabled { background: var(--border); box-shadow: none; } .compare-mini-item { width: 44px; height: 44px; border-radius: 12px; background: var(--bg); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; position: relative; transition: all 0.2s; } .compare-mini-item:hover:not(.empty) { border-color: var(--primary); background: var(--primary-light); } .compare-mini-item.empty { border-style: dashed; background: transparent; } .compare-count-label { font-weight: 800; font-size: 0.75rem; color: var(--text-main); } .mini-remove { position: absolute; top: -6px; right: -6px; background: var(--danger); color: white; border: none; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.25); z-index: 10; } .comparison-table-wrapper { overflow-x: auto; margin-top: 20px; border-radius: 16px; border: 1px solid var(--border); } .comparison-table { width: 100%; border-collapse: collapse; background: var(--card-bg); } .comparison-table th, .comparison-table td { padding: 16px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); } .comparison-table th { background: var(--bg); color: var(--text-main); font-weight: 800; } .comparison-table tr:last-child td { border-bottom: none; } .comparison-table td:last-child, .comparison-table th:last-child { border-right: none; } .mini-img-placeholder { width: 80px; height: 80px; background: var(--bg); border-radius: 12px; margin: 0 auto; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); } ` }} /> </div> ); } function SuggestionsList({ list, onSelect, isStoreSearch = false }: { list: SuggestionItem[], onSelect: (e: any, name: string, type: any) => void, isStoreSearch?: boolean }) { return ( <div className="suggestions-dropdown animate"> <div style={{ padding: '8px 12px', fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', borderBottom: '1px solid var(--border)', marginBottom: '4px' }}> {isStoreSearch ? 'Sugestões de Estabelecimento' : 'Sugestões no Banco'} </div> {list.length > 0 ? ( list.map((item, idx) => ( <div key={idx} className="suggestion-item" onClick={(e) => onSelect(e, item.name, item.type)}> <div className="suggestion-icon-wrapper"> {item.type === 'category' && <Tag size={14} />} {item.type === 'product' && <Package size={14} />} {item.type === 'store' && <StoreIcon size={14} />} {item.type === 'neighborhood' && <MapPin size={14} />} </div> <div className="suggestion-content"> <span className="suggestion-text">{item.name}</span> <span className="suggestion-type-label"> {item.type === 'category' && 'Categoria'} {item.type === 'product' && 'Produto'} {item.type === 'store' && 'Supermercado'} {item.type === 'neighborhood' && 'Bairro'} </span> </div> <ChevronRight size={14} className="suggestion-chevron" /> </div> )) ) : ( <div style={{ padding: '20px', textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-muted)' }}> Sem resultados aproximados </div> )} </div> ); } function App() { return ( <Router> <AppContent /> </Router> ); } export default App;
+          width: 44px !important; height: 36px !important; padding: 0 !important; justify-content: center !important; border-radius: 10px !important; color: var(--danger) !important; border-color: rgba(239, 68, 68, 0.1) !important;
+        }
+        .btn-compare-main:disabled { background: var(--border); box-shadow: none; }
+        .compare-mini-item { width: 44px; height: 44px; border-radius: 12px; background: var(--bg); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; position: relative; transition: all 0.2s; }
+        .compare-mini-item:hover:not(.empty) { border-color: var(--primary); background: var(--primary-light); }
+        .compare-mini-item.empty { border-style: dashed; background: transparent; }
+        .compare-count-label { font-weight: 800; font-size: 0.75rem; color: var(--text-main); }
+        .mini-remove { position: absolute; top: -6px; right: -6px; background: var(--danger); color: white; border: none; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.25); z-index: 10; }
+        .comparison-table-wrapper { overflow-x: auto; margin-top: 20px; border-radius: 16px; border: 1px solid var(--border); }
+        .comparison-table { width: 100%; border-collapse: collapse; background: var(--card-bg); }
+        .comparison-table th, .comparison-table td { padding: 16px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); }
+        .comparison-table th { background: var(--bg); color: var(--text-main); font-weight: 800; }
+        .comparison-table tr:last-child td { border-bottom: none; }
+        .comparison-table td:last-child, .comparison-table th:last-child { border-right: none; }
+        .mini-img-placeholder { width: 80px; height: 80px; background: var(--bg); border-radius: 12px; margin: 0 auto; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); }
+      ` }} />
+    </div>
+  );
+}
+
+function SuggestionsList({ list, onSelect, isStoreSearch = false }: { list: SuggestionItem[], onSelect: (e: any, name: string, type: any) => void, isStoreSearch?: boolean }) {
+  return (
+    <div className="suggestions-dropdown animate">
+      <div style={{ padding: '8px 12px', fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', borderBottom: '1px solid var(--border)', marginBottom: '4px' }}>
+        {isStoreSearch ? 'Sugestões de Estabelecimento' : 'Sugestões no Banco'}
+      </div>
+      {list.length > 0 ? (
+        list.map((item, idx) => (
+          <div key={idx} className="suggestion-item" onClick={(e) => onSelect(e, item.name, item.type)}>
+            <div className="suggestion-icon-wrapper">
+              {item.type === 'category' && <Tag size={14} />}
+              {item.type === 'product' && <Package size={14} />}
+              {item.type === 'store' && <StoreIcon size={14} />}
+              {item.type === 'neighborhood' && <MapPin size={14} />}
+            </div>
+            <div className="suggestion-content">
+              <span className="suggestion-text">{item.name}</span>
+              <span className="suggestion-type-label">
+                {item.type === 'category' && 'Categoria'}
+                {item.type === 'product' && 'Produto'}
+                {item.type === 'store' && 'Supermercado'}
+                {item.type === 'neighborhood' && 'Bairro'}
+              </span>
+            </div>
+            <ChevronRight size={14} className="suggestion-chevron" />
+          </div>
+        ))
+      ) : (
+        <div style={{ padding: '20px', textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+          Sem resultados aproximados
+        </div>
+      )}
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <Router>
+      <AppContent />
+    </Router>
+  );
+}
+
+export default App;

@@ -1,6 +1,6 @@
 
 import { ProductOffer } from "../types";
-import { MOCK_STORES, RAW_PRODUCTS } from "../constants";
+import { MOCK_STORES, RAW_PRODUCTS, isProductFresh } from "../constants";
 
 export const searchProductsWithGemini = async (query: string): Promise<ProductOffer[]> => {
   // Simula um pequeno delay de rede para manter o feeling do app
@@ -8,7 +8,10 @@ export const searchProductsWithGemini = async (query: string): Promise<ProductOf
 
   const lowerQuery = query.toLowerCase();
   
-  const filtered = RAW_PRODUCTS.filter(p => 
+  // Filtragem inicial: apenas produtos que atendem ao critério de data
+  const freshProducts = RAW_PRODUCTS.filter(p => isProductFresh(p.ultima_atualizacao));
+
+  const filtered = freshProducts.filter(p => 
     p.produto.toLowerCase().includes(lowerQuery) || 
     p.categoria.toLowerCase().includes(lowerQuery) ||
     (lowerQuery === "promoções" && p.promocao)
@@ -30,7 +33,8 @@ export const searchProductsWithGemini = async (query: string): Promise<ProductOf
       originalPrice: p.preco_normal,
       unit: p.produto.split(' ').slice(-1)[0], // Extrai a unidade do final da string
       imageUrl: "",
-      isPromo: p.promocao
+      isPromo: p.promocao,
+      updatedAt: (p as any).ultima_atualizacao
     };
   });
 };
