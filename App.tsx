@@ -812,8 +812,8 @@ function AppContent() {
       <main className="container" style={{paddingTop: '30px', paddingBottom: '80px'}}>
         <Routes>
           <Route path="/" element={
-            <div className="animate" style={{textAlign: 'center', maxWidth: '800px', margin: '60px auto'}}>
-              <h1 style={{fontSize: '3.2rem', fontWeight: 800, marginBottom: '16px', lineHeight: 1.1}}>Compare e <span style={{color: 'var(--primary)'}}>economize</span>.</h1>
+            <div className="animate" style={{textAlign: 'center', maxWidth: '800px', margin: '40px auto'}}>
+              <h1 style={{fontSize: '2.4rem', fontWeight: 800, marginBottom: '24px', lineHeight: 1.15}}>Compare e <span style={{color: 'var(--primary)'}}>economize</span></h1>
               <p style={{color: 'var(--text-muted)', marginBottom: '30px', fontSize: '1.1rem'}}>
                 Os melhores preços de {stats.totalProducts} produtos em {stats.totalStores} supermercados locais, incluindo {stats.totalPromos} promoções imperdíveis.
               </p>
