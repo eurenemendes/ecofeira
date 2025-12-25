@@ -258,7 +258,8 @@ function AppContent() {
     }
   }, [location]);
 
-  const categories = useMemo(() => Array.from(new Set(freshProductsPool.map(p => p.categoria))), [freshProductsPool]);
+  // Fixed categories type inference by adding explicit <string> generic to Set
+  const categories = useMemo(() => Array.from(new Set<string>(freshProductsPool.map(p => p.categoria))), [freshProductsPool]);
 
   const filteredStores = useMemo(() => {
     const normalizedQuery = normalizeText(storeQuery);
@@ -499,17 +500,18 @@ function AppContent() {
     return () => clearTimeout(timer);
   }, [cart, searchHistory, notifications.length, freshProductsPool]);
 
+  // Fixed type inference by explicitly typing the mapping and Array.from/Set generic
   const handleInputChange = (val: string) => {
     setQuery(val);
     if (val.trim().length > 0) {
       const normalizedVal = normalizeText(val);
       const categoryMatches: SuggestionItem[] = categories
         .filter(cat => normalizeText(cat).includes(normalizedVal))
-        .map(name => ({ name, type: 'category' }));
-      const productMatches: SuggestionItem[] = Array.from(new Set(freshProductsPool
+        .map((name: string) => ({ name, type: 'category' }));
+      const productMatches: SuggestionItem[] = Array.from(new Set<string>(freshProductsPool
         .filter(p => normalizeText(p.produto).includes(normalizedVal))
         .map(p => p.produto)))
-        .map(name => ({ name, type: 'product' }));
+        .map((name: string) => ({ name, type: 'product' }));
       const combined = [...categoryMatches, ...productMatches].slice(0, 8);
       setSuggestions(combined);
       setShowSuggestions(true);
@@ -526,10 +528,10 @@ function AppContent() {
       const nameMatches: SuggestionItem[] = MOCK_STORES
         .filter(s => normalizeText(s.name).includes(normalizedVal))
         .map(s => ({ name: s.name, type: 'store' }));
-      const neighborhoodMatches: SuggestionItem[] = Array.from(new Set(MOCK_STORES
+      const neighborhoodMatches: SuggestionItem[] = Array.from(new Set<string>(MOCK_STORES
         .filter(s => normalizeText(s.address.neighborhood).includes(normalizedVal))
         .map(s => s.address.neighborhood)))
-        .map(name => ({ name, type: 'neighborhood' }));
+        .map((name: string) => ({ name, type: 'neighborhood' }));
       
       const combined = [...nameMatches, ...neighborhoodMatches].slice(0, 6);
       setStoreSuggestions(combined);
