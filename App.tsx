@@ -664,7 +664,16 @@ function AppContent() {
               <div className="search-container" ref={headerSearchRef}>
                 <form onSubmit={(e) => handleSearch(e)}>
                   <Search className="search-icon" size={18} />
-                  <input type="text" className="search-input" placeholder="Buscar..." value={query} onChange={(e) => handleInputChange(e.target.value)} onFocus={() => query.length > 0 && setShowSuggestions(true)} />
+                  <input 
+                    type="text" 
+                    id="header-search"
+                    name="q"
+                    className="search-input" 
+                    placeholder="Buscar..." 
+                    value={query} 
+                    onChange={(e) => handleInputChange(e.target.value)} 
+                    onFocus={() => query.length > 0 && setShowSuggestions(true)} 
+                  />
                 </form>
                 {showSuggestions && <SuggestionsList list={suggestions} onSelect={handleSearch} />}
               </div>
@@ -813,7 +822,16 @@ function AppContent() {
               <div style={{position: 'relative', marginBottom: '40px'}} ref={searchRef}>
                  <Search style={{position: 'absolute', left: '20px', top: '18px', color: 'var(--primary)', zIndex: 10}} size={24} />
                  <form onSubmit={(e) => handleSearch(e)}>
-                  <input type="text" placeholder="O que você precisa hoje?" style={{width: '100%', padding: '18px 120px 18px 55px', borderRadius: '20px', border: '2px solid var(--border)', background: 'var(--card-bg)', color: 'var(--text-main)', fontSize: '1.1rem', outline: 'none', boxShadow: 'var(--shadow-md)', position: 'relative', zIndex: 5}} value={query} onChange={(e) => handleInputChange(e.target.value)} onFocus={() => query.length > 0 && setShowSuggestions(true)} />
+                  <input 
+                    type="text" 
+                    id="main-search"
+                    name="q"
+                    placeholder="O que você precisa hoje?" 
+                    style={{width: '100%', padding: '18px 120px 18px 55px', borderRadius: '20px', border: '2px solid var(--border)', background: 'var(--card-bg)', color: 'var(--text-main)', fontSize: '1.1rem', outline: 'none', boxShadow: 'var(--shadow-md)', position: 'relative', zIndex: 5}} 
+                    value={query} 
+                    onChange={(e) => handleInputChange(e.target.value)} 
+                    onFocus={() => query.length > 0 && setShowSuggestions(true)} 
+                  />
                   <button type="submit" className="btn btn-primary" style={{position: 'absolute', right: '8px', top: '8px', bottom: '8px', borderRadius: '14px', zIndex: 10}}>Buscar</button>
                  </form>
                  {showSuggestions && <SuggestionsList list={suggestions} onSelect={handleSearch} />}
@@ -856,6 +874,8 @@ function AppContent() {
                     <Search size={20} className="promo-search-icon" />
                     <input 
                       type="text" 
+                      id="promo-search"
+                      name="promo-q"
                       placeholder="Pesquisar nas promoções..." 
                       value={promoSearch}
                       onChange={(e) => setPromoSearch(e.target.value)}
@@ -961,6 +981,8 @@ function AppContent() {
                   <Search size={18} className="store-search-icon" />
                   <input 
                     type="text" 
+                    id="store-search"
+                    name="store-q"
                     placeholder="Nome ou Bairro..." 
                     className="store-search-input"
                     value={storeQuery} 
