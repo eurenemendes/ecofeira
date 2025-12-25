@@ -582,6 +582,11 @@ function AppContent() {
           </nav>
 
           <div className="flex gap-2 items-center">
+            {/* Supermercados Mobile Button */}
+            <Link to="/stores" className="btn btn-ghost mobile-only" style={{ padding: '10px' }} data-tooltip="Supermercados">
+              <StoreIcon size={20} />
+            </Link>
+
             {/* Desktop-only: Theme Switcher */}
             <button className="btn btn-ghost hide-mobile" onClick={() => setIsDarkMode(!isDarkMode)} style={{ padding: '10px' }} data-tooltip={isDarkMode ? "Ativar modo claro" : "Ativar modo escuro"}>
               {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
@@ -670,6 +675,15 @@ function AppContent() {
                 </div>
                 Meus Favoritos
               </Link>
+              
+              {/* Alertas de Preço no Menu Lateral Mobile */}
+              <button className="sidebar-link" onClick={() => { setIsNotifOpen(true); setIsMenuOpen(false); markAllNotifsRead(); }} style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}>
+                <div style={{ position: 'relative' }}>
+                  <Bell size={20} />
+                  {unreadCount > 0 && <span className="badge-count" style={{ position: 'absolute', top: '-8px', right: '-8px', width: '16px', height: '16px', fontSize: '0.6rem', background: '#f59e0b' }}>{unreadCount}</span>}
+                </div>
+                Alertas de Preço
+              </button>
               
               <div style={{ margin: '20px 0', borderTop: '1px solid var(--border)' }} />
               
