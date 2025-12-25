@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ProductOffer } from '../types';
 import { Plus, ShoppingBasket, Tag, Check, Heart, Scale } from 'lucide-react';
 import { MOCK_STORES } from '../constants';
@@ -26,6 +26,15 @@ const ProductCard: React.FC<ProductCardProps> = ({
   onToggleCompare
 }) => {
   const [added, setAdded] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth <= 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   const savings = product.originalPrice - product.price;
   const discountPercent = Math.round((savings / product.originalPrice) * 100);
 
@@ -72,53 +81,56 @@ const ProductCard: React.FC<ProductCardProps> = ({
       <div className="card animate" style={{ 
         flexDirection: 'row', 
         alignItems: 'center', 
-        padding: '16px 20px', 
-        gap: '20px',
+        padding: isMobile ? '12px' : '16px 20px', 
+        gap: isMobile ? '12px' : '20px',
         width: '100%',
-        minHeight: '100px',
+        minHeight: isMobile ? '80px' : '100px',
         position: 'relative',
-        overflow: 'visible',
-        justifyContent: 'space-between'
+        overflow: 'hidden',
+        justifyContent: 'space-between',
+        flexWrap: 'nowrap'
       }}>
         {product.isPromo && (
           <div style={{
             position: 'absolute',
-            top: '-10px',
-            left: '20px',
+            top: isMobile ? '-8px' : '-10px',
+            left: isMobile ? '12px' : '20px',
             background: 'var(--danger)',
             color: 'white',
-            padding: '4px 10px',
-            borderRadius: '8px',
-            fontSize: '0.7rem',
+            padding: isMobile ? '2px 8px' : '4px 10px',
+            borderRadius: '6px',
+            fontSize: isMobile ? '0.6rem' : '0.7rem',
             fontWeight: 800,
             zIndex: 10,
             boxShadow: '0 4px 12px rgba(239, 68, 68, 0.2)'
           }}>
-            {discountPercent}% ECONOMIA
+            {discountPercent}% OFF
           </div>
         )}
 
-        <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '8px', zIndex: 15 }}>
-          <button 
-            onClick={handleToggleCompare}
-            data-tooltip={isComparing ? "Remover da comparação" : "Comparar produto"}
-            style={{
-              background: isComparing ? 'var(--primary-light)' : 'var(--card-bg)',
-              border: `1px solid ${isComparing ? 'var(--primary)' : 'var(--border)'}`,
-              borderRadius: '50%',
-              width: '32px',
-              height: '32px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              color: isComparing ? 'var(--primary)' : 'var(--text-muted)',
-              transition: 'all 0.2s ease',
-              boxShadow: 'var(--shadow-sm)'
-            }}
-          >
-            <Scale size={14} />
-          </button>
+        <div style={{ position: 'absolute', top: '8px', right: '8px', display: 'flex', gap: '4px', zIndex: 15 }}>
+          {!isMobile && (
+            <button 
+              onClick={handleToggleCompare}
+              data-tooltip={isComparing ? "Remover da comparação" : "Comparar produto"}
+              style={{
+                background: isComparing ? 'var(--primary-light)' : 'var(--card-bg)',
+                border: `1px solid ${isComparing ? 'var(--primary)' : 'var(--border)'}`,
+                borderRadius: '50%',
+                width: '28px',
+                height: '28px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: isComparing ? 'var(--primary)' : 'var(--text-muted)',
+                transition: 'all 0.2s ease',
+                boxShadow: 'var(--shadow-sm)'
+              }}
+            >
+              <Scale size={12} />
+            </button>
+          )}
           <button 
             onClick={handleToggleFavorite}
             data-tooltip={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
@@ -126,8 +138,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
               background: 'var(--card-bg)',
               border: '1px solid var(--border)',
               borderRadius: '50%',
-              width: '32px',
-              height: '32px',
+              width: isMobile ? '24px' : '28px',
+              height: isMobile ? '24px' : '28px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -137,44 +149,47 @@ const ProductCard: React.FC<ProductCardProps> = ({
               boxShadow: 'var(--shadow-sm)'
             }}
           >
-            <Heart size={16} fill={isFavorite ? '#f43f5e' : 'none'} />
+            <Heart size={isMobile ? 12 : 14} fill={isFavorite ? '#f43f5e' : 'none'} />
           </button>
         </div>
 
         <div style={{
           background: 'var(--bg)',
-          width: '70px',
-          height: '70px',
-          borderRadius: '16px',
+          width: isMobile ? '50px' : '70px',
+          height: isMobile ? '50px' : '70px',
+          borderRadius: isMobile ? '10px' : '16px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0,
           border: '1px solid var(--border)'
         }}>
-          <ShoppingBasket size={32} style={{opacity: 0.2, color: 'var(--primary)'}} />
+          <ShoppingBasket size={isMobile ? 24 : 32} style={{opacity: 0.2, color: 'var(--primary)'}} />
         </div>
 
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <div>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: isMobile ? '2px' : '6px', minWidth: 0 }}>
+          <div style={{ overflow: 'hidden' }}>
             <span style={{
-              fontSize: '0.65rem', 
+              fontSize: '0.55rem', 
               background: '#d1fae5', 
               color: '#059669', 
-              padding: '3px 8px', 
-              borderRadius: '6px', 
+              padding: '2px 6px', 
+              borderRadius: '4px', 
               fontWeight: 800, 
               textTransform: 'uppercase',
-              marginBottom: '4px',
+              marginBottom: '2px',
               display: 'inline-block'
             }}>
               {product.category}
             </span>
             <h4 style={{
               fontWeight: 700, 
-              fontSize: '1rem', 
-              lineHeight: 1.3,
-              color: 'var(--text-main)'
+              fontSize: isMobile ? '0.85rem' : '1rem', 
+              lineHeight: 1.2,
+              color: 'var(--text-main)',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
             }}>
               {product.name}
             </h4>
@@ -182,41 +197,42 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
           <div 
             onClick={handleStoreClick}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', width: 'fit-content' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', width: 'fit-content' }}
             className="store-link"
           >
              <div style={{ 
-               width: '24px', 
-               height: '24px', 
+               width: isMobile ? '18px' : '24px', 
+               height: isMobile ? '18px' : '24px', 
                background: 'white', 
                border: '1px solid var(--border)', 
-               borderRadius: '6px',
+               borderRadius: '4px',
                display: 'flex',
                alignItems: 'center',
                justifyContent: 'center',
                padding: '2px'
              }}>
-               {renderLogo(storeInfo?.logo, '16px')}
+               {renderLogo(storeInfo?.logo, isMobile ? '12px' : '16px')}
              </div>
-             <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>{product.storeName}</span>
+             <span style={{ fontSize: isMobile ? '0.65rem' : '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>{product.storeName}</span>
           </div>
         </div>
 
         <div style={{ 
           display: 'flex', 
           alignItems: 'center', 
-          gap: '24px', 
-          paddingLeft: '20px', 
-          borderLeft: '1px solid var(--border)' 
+          gap: isMobile ? '8px' : '24px', 
+          paddingLeft: isMobile ? '8px' : '20px', 
+          borderLeft: isMobile ? 'none' : '1px solid var(--border)',
+          flexShrink: 0
         }}>
-          <div style={{ textAlign: 'right', minWidth: '100px' }}>
+          <div style={{ textAlign: 'right', minWidth: isMobile ? '60px' : '90px' }}>
             {product.isPromo && (
-               <span style={{fontSize: '0.8rem', textDecoration: 'line-through', color: 'var(--text-muted)', opacity: 0.7, display: 'block'}}>
+               <span style={{fontSize: isMobile ? '0.65rem' : '0.8rem', textDecoration: 'line-through', color: 'var(--text-muted)', opacity: 0.7, display: 'block'}}>
                   R$ {product.originalPrice.toFixed(2).replace('.', ',')}
                </span>
             )}
             <span style={{
-              fontSize: '1.25rem', 
+              fontSize: isMobile ? '0.95rem' : '1.25rem', 
               fontWeight: 800, 
               color: product.isPromo ? 'var(--danger)' : 'var(--primary)',
               display: 'block'
@@ -230,11 +246,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
             data-tooltip={added ? "Adicionado" : "Adicionar à lista"}
             style={{
               padding: '0', 
-              borderRadius: '12px',
+              borderRadius: isMobile ? '8px' : '12px',
               background: added ? 'var(--primary)' : '#10b981',
-              width: '44px',
-              height: '44px',
-              minWidth: '44px',
+              width: isMobile ? '36px' : '44px',
+              height: isMobile ? '36px' : '44px',
+              minWidth: isMobile ? '36px' : '44px',
               justifyContent: 'center',
               boxShadow: '0 4px 14px rgba(16, 185, 129, 0.25)',
               transition: 'all 0.3s ease'
@@ -242,7 +258,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             onClick={handleAdd}
             disabled={added}
           >
-            {added ? <Check size={22} className="animate-pop" /> : <Plus size={22} />}
+            {added ? <Check size={isMobile ? 18 : 22} className="animate-pop" /> : <Plus size={isMobile ? 18 : 22} />}
           </button>
         </div>
       </div>

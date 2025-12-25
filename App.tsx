@@ -14,7 +14,7 @@ import {
   Tag, ArrowUp, ChevronRight, Package, Check, AlertTriangle, LayoutGrid, 
   List, ArrowLeft, MapPin, BookOpen, ChevronUp, Bell, BellOff, Info, 
   TrendingDown, Sparkles, Clock, ArrowUpDown, Heart, Scale, BarChart2,
-  ShoppingBasket, Plus, Menu as MenuIcon, Filter, Percent, Trophy
+  ShoppingBasket, Plus, Menu as MenuIcon, Filter, Percent
 } from 'lucide-react';
 import { searchProductsWithGemini } from './services/geminiService';
 import { ProductOffer, CartItem, Store, AppNotification } from './types';
@@ -426,12 +426,6 @@ function AppContent() {
     return products;
   }, [filteredAndSortedPromos]);
 
-  // Lógica para encontrar o produto mais econômico na comparação
-  const cheapestProductInCompare = useMemo(() => {
-    if (compareList.length === 0) return null;
-    return compareList.reduce((prev, curr) => (prev.price < curr.price ? prev : curr));
-  }, [compareList]);
-
   // Automated Notifications
   useEffect(() => {
     if (cart.length === 0 && searchHistory.length === 0) return;
@@ -713,7 +707,7 @@ function AppContent() {
               )}
             </div>
 
-            <Link to="/cart" className="btn btn-ghost" style={{ position: 'relative', padding: '10px' }} data-tooltip="Minha lista de compras">
+            <Link to="/cart" className="btn btn-ghost" style={{ position: 'relative', padding: '10px' }} data-tooltip="Ver minha lista de compras">
               <ShoppingCart size={20} />
               {totalItems > 0 && <span className="badge-count animate-pop">{totalItems}</span>}
             </Link>
@@ -860,8 +854,8 @@ function AppContent() {
 
                   {/* View Toggle */}
                   <div className="view-mode-toggle-box">
-                    <button onClick={() => setViewMode('grid')} className={viewMode === 'grid' ? 'active' : ''} data-tooltip="Grade"><LayoutGrid size={20} /></button>
-                    <button onClick={() => setViewMode('list')} className={viewMode === 'list' ? 'active' : ''} data-tooltip="Lista"><List size={20} /></button>
+                    <button onClick={() => setViewMode('grid')} className={viewMode === 'grid' ? 'active' : ''}><LayoutGrid size={20} /></button>
+                    <button onClick={() => setViewMode('list')} className={viewMode === 'list' ? 'active' : ''}><List size={20} /></button>
                   </div>
                 </div>
               </div>
@@ -1006,14 +1000,14 @@ function AppContent() {
             <div className="animate">
               <div className="flex items-center justify-between" style={{ marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
                 <div className="flex items-center gap-2">
-                  <button className="btn btn-ghost" onClick={() => navigate('/')} data-tooltip="Voltar para a página inicial" style={{ padding: '8px' }}><X size={20} /></button>
+                  <button className="btn btn-ghost" onClick={() => navigate('/')} data-tooltip="Fechar resultados" style={{ padding: '8px' }}><X size={20} /></button>
                   <h2 style={{fontWeight: 800, fontSize: '1.25rem'}}>{filteredAndSortedResults.length} resultados para "{query}"</h2>
                 </div>
               </div>
               <div className="flex items-center justify-between" style={{ marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
                 <div className="flex items-center gap-4">
                   <div style={{ display: 'flex', background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '4px' }}>
-                    <button onClick={() => setViewMode('grid')} className={`btn-icon ${viewMode === 'grid' ? 'active' : ''}`} data-tooltip="Grade"><LayoutGrid size={18} /></button>
+                    <button onClick={() => setViewMode('grid')} className={`btn-icon ${viewMode === 'grid' ? 'active' : ''}`} data-tooltip="Grelha"><LayoutGrid size={18} /></button>
                     <button onClick={() => setViewMode('list')} className={`btn-icon ${viewMode === 'list' ? 'active' : ''}`} data-tooltip="Lista"><List size={18} /></button>
                   </div>
                   <div className="flex items-center gap-2">
@@ -1164,7 +1158,7 @@ function AppContent() {
         </div>
       )}
 
-      {/* Comparison Modal with Highlighted Best Choice */}
+      {/* Comparison Modal */}
       {isCompareModalOpen && (
         <div className="modal-overlay" onClick={() => setIsCompareModalOpen(false)}>
           <div className="modal-content comparison-modal animate-pop" onClick={e => e.stopPropagation()} style={{ maxWidth: '900px', width: '95%' }}>
@@ -1181,84 +1175,36 @@ function AppContent() {
                 <thead>
                   <tr>
                     <th style={{ width: '200px', textAlign: 'left' }}>Atributo</th>
-                    {compareList.map(item => {
-                      const isCheapest = item.id === cheapestProductInCompare?.id;
-                      return (
-                        <th key={item.id} style={{ 
-                          minWidth: '150px', 
-                          position: 'relative',
-                          border: isCheapest ? '2px solid var(--primary)' : '1px solid var(--border)',
-                          background: isCheapest ? 'var(--primary-light)' : 'transparent',
-                          borderBottom: 'none'
-                        }}>
-                          {isCheapest && (
-                            <div style={{
-                              position: 'absolute',
-                              top: '-12px',
-                              left: '50%',
-                              transform: 'translateX(-50%)',
-                              background: 'var(--primary)',
-                              color: 'white',
-                              fontSize: '0.6rem',
-                              padding: '2px 8px',
-                              borderRadius: '4px',
-                              fontWeight: 900,
-                              textTransform: 'uppercase',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              whiteSpace: 'nowrap'
-                            }}>
-                              <Trophy size={10} /> Melhor Preço
-                            </div>
-                          )}
-                          <div style={{ textAlign: 'center', paddingTop: isCheapest ? '10px' : '0' }}>
-                            <div className="mini-img-placeholder">
-                              <ShoppingBasket size={32} opacity={0.1} color="var(--primary)" />
-                            </div>
-                            <p style={{ fontWeight: 700, fontSize: '0.85rem', marginTop: '10px', height: '2.6em', overflow: 'hidden' }}>{item.name}</p>
+                    {compareList.map(item => (
+                      <th key={item.id} style={{ minWidth: '150px' }}>
+                        <div style={{ textAlign: 'center' }}>
+                          <div className="mini-img-placeholder">
+                            <ShoppingBasket size={32} opacity={0.1} color="var(--primary)" />
                           </div>
-                        </th>
-                      );
-                    })}
+                          <p style={{ fontWeight: 700, fontSize: '0.85rem', marginTop: '10px', height: '2.6em', overflow: 'hidden' }}>{item.name}</p>
+                        </div>
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
                     <td><strong>Preço</strong></td>
-                    {compareList.map(item => {
-                       const isCheapest = item.id === cheapestProductInCompare?.id;
-                       return (
-                        <td key={item.id} style={{ 
-                          borderLeft: isCheapest ? '2px solid var(--primary)' : '1px solid var(--border)',
-                          borderRight: isCheapest ? '2px solid var(--primary)' : '1px solid var(--border)',
-                          background: isCheapest ? 'var(--primary-light)' : 'transparent'
-                        }}>
-                          <div style={{ textAlign: 'center' }}>
-                            <span style={{ 
-                              fontSize: '1.2rem', 
-                              fontWeight: 800, 
-                              color: isCheapest ? 'var(--primary)' : (item.isPromo ? 'var(--danger)' : 'var(--primary)') 
-                            }}>
-                              R$ {item.price.toFixed(2).replace('.', ',')}
-                            </span>
-                            {item.isPromo && <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', textDecoration: 'line-through' }}>R$ {item.originalPrice.toFixed(2).replace('.', ',')}</span>}
-                          </div>
-                        </td>
-                      );
-                    })}
+                    {compareList.map(item => (
+                      <td key={item.id}>
+                        <div style={{ textAlign: 'center' }}>
+                          <span style={{ fontSize: '1.2rem', fontWeight: 800, color: item.isPromo ? 'var(--danger)' : 'var(--primary)' }}>R$ {item.price.toFixed(2).replace('.', ',')}</span>
+                          {item.isPromo && <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', textDecoration: 'line-through' }}>R$ {item.originalPrice.toFixed(2).replace('.', ',')}</span>}
+                        </div>
+                      </td>
+                    ))}
                   </tr>
                   <tr>
                     <td><strong>Loja</strong></td>
                     {compareList.map(item => {
                       const storeData = MOCK_STORES.find(s => s.id === item.storeId);
-                      const isCheapest = item.id === cheapestProductInCompare?.id;
                       return (
-                        <td key={item.id} style={{ 
-                          borderLeft: isCheapest ? '2px solid var(--primary)' : '1px solid var(--border)',
-                          borderRight: isCheapest ? '2px solid var(--primary)' : '1px solid var(--border)',
-                          background: isCheapest ? 'var(--primary-light)' : 'transparent'
-                        }}>
+                        <td key={item.id}>
                           <div className="flex items-center justify-center gap-2">
                             {renderLogo(storeData?.logo || '', '24px', item.storeName)}
                             <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{item.storeName}</span>
@@ -1269,44 +1215,28 @@ function AppContent() {
                   </tr>
                   <tr>
                     <td><strong>Categoria</strong></td>
-                    {compareList.map(item => {
-                      const isCheapest = item.id === cheapestProductInCompare?.id;
-                      return (
-                        <td key={item.id} style={{ 
-                          textAlign: 'center',
-                          borderLeft: isCheapest ? '2px solid var(--primary)' : '1px solid var(--border)',
-                          borderRight: isCheapest ? '2px solid var(--primary)' : '1px solid var(--border)',
-                          background: isCheapest ? 'var(--primary-light)' : 'transparent'
-                        }}>
-                          <span style={{ fontSize: '0.7rem', background: 'var(--primary-light)', color: 'var(--primary)', padding: '2px 8px', borderRadius: '4px', fontWeight: 800 }}>{item.category}</span>
-                        </td>
-                      );
-                    })}
+                    {compareList.map(item => (
+                      <td key={item.id} style={{ textAlign: 'center' }}>
+                        <span style={{ fontSize: '0.7rem', background: 'var(--primary-light)', color: 'var(--primary)', padding: '2px 8px', borderRadius: '4px', fontWeight: 800 }}>{item.category}</span>
+                      </td>
+                    ))}
                   </tr>
                   <tr>
                     <td><strong>Ações</strong></td>
-                    {compareList.map(item => {
-                      const isCheapest = item.id === cheapestProductInCompare?.id;
-                      return (
-                        <td key={item.id} style={{ 
-                          borderLeft: isCheapest ? '2px solid var(--primary)' : '1px solid var(--border)',
-                          borderRight: isCheapest ? '2px solid var(--primary)' : '1px solid var(--border)',
-                          borderBottom: isCheapest ? '2px solid var(--primary)' : '1px solid var(--border)',
-                          background: isCheapest ? 'var(--primary-light)' : 'transparent'
-                        }}>
-                          <div style={{ textAlign: 'center' }}>
-                            <button 
-                              className="btn btn-primary" 
-                              style={{ fontSize: '0.7rem', padding: '6px 12px' }}
-                              onClick={() => { addToCart(item); setIsCompareModalOpen(false); }}
-                              data-tooltip="Adicionar este à lista"
-                            >
-                              Add à Lista
-                            </button>
-                          </div>
-                        </td>
-                      );
-                    })}
+                    {compareList.map(item => (
+                      <td key={item.id}>
+                        <div style={{ textAlign: 'center' }}>
+                          <button 
+                            className="btn btn-primary" 
+                            style={{ fontSize: '0.7rem', padding: '6px 12px' }}
+                            onClick={() => { addToCart(item); setIsCompareModalOpen(false); }}
+                            data-tooltip="Adicionar este à lista"
+                          >
+                            Add à Lista
+                          </button>
+                        </div>
+                      </td>
+                    ))}
                   </tr>
                 </tbody>
               </table>
